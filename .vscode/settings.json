@@ -1,0 +1,13 @@
+{
+    "java.project.referencedLibraries": {
+        "include": [
+            "lib/**/*.jar"
+        ],
+        "exclude": [
+            "cs502_1/jtb132.jar"
+        ]
+    },
+    "java.project.sourcePaths": [
+        "cs502_1"
+    ]
+}
