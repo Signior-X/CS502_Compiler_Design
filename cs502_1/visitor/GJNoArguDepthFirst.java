@@ -100,16 +100,31 @@ public class GJNoArguDepthFirst implements GJNoArguVisitor<String> {
    public String visit(Goal n) {
       String _ret=null;
 
-      System.out.println("PRIYAM: " + n.f0.toString());
+      // System.out.println("PRIYAM: " + n.f0.toString());
 
       n.f0.accept(this);
       n.f1.accept(this);
       n.f2.accept(this);
 
       // Priyam, we will print all the outputs here
-      System.out.println("PRIYAM extendsTo: " + extendsTo.toString());
+      // System.out.println("PRIYAM extendsTo: " + extendsTo.toString());
       
-      System.out.println("PRIYAM classes: " + classes.toString());
+      // System.out.println("PRIYAM classes: " + classes.toString());
+
+      for(Map.Entry<String, TreeMap<String, MethodAnswer>> className : classes.entrySet()) {
+         System.out.print("Class " + className.getKey() + " :");
+
+         if (extendsTo.containsKey(className.getKey())) {
+            System.out.print(" " + extendsTo.get(className.getKey()));
+         }
+
+         System.out.println();
+
+         for(Map.Entry<String, MethodAnswer> methodName : className.getValue().entrySet()) {
+            System.out.println(methodName.getValue().toString());
+         }
+      }
+
       return _ret;
    }
 
@@ -398,7 +413,7 @@ public class GJNoArguDepthFirst implements GJNoArguVisitor<String> {
       String _ret=null;
       String lhs = n.f0.accept(this);
 
-      System.out.println("LHS: " + currentMethod + " " + lhs);
+      // System.out.println("LHS: " + currentMethod + " " + lhs);
 
       n.f1.accept(this);
       n.f2.accept(this);
@@ -534,6 +549,9 @@ public class GJNoArguDepthFirst implements GJNoArguVisitor<String> {
     */
    public String visit(OrExpression n) {
       String _ret=null;
+      if (!currentClass.isEmpty() && !currentMethod.isEmpty() && insideMethod) {
+         classes.get(currentClass).get(currentMethod).binaryOperations += 1;
+      }
       n.f0.accept(this);
       n.f1.accept(this);
       n.f2.accept(this);
@@ -547,6 +565,9 @@ public class GJNoArguDepthFirst implements GJNoArguVisitor<String> {
     */
    public String visit(EqExpression n) {
       String _ret=null;
+      if (!currentClass.isEmpty() && !currentMethod.isEmpty() && insideMethod) {
+         classes.get(currentClass).get(currentMethod).binaryOperations += 1;
+      }
       n.f0.accept(this);
       n.f1.accept(this);
       n.f2.accept(this);
@@ -560,6 +581,9 @@ public class GJNoArguDepthFirst implements GJNoArguVisitor<String> {
     */
    public String visit(NotEqExpression n) {
       String _ret=null;
+      if (!currentClass.isEmpty() && !currentMethod.isEmpty() && insideMethod) {
+         classes.get(currentClass).get(currentMethod).binaryOperations += 1;
+      }
       n.f0.accept(this);
       n.f1.accept(this);
       n.f2.accept(this);
@@ -573,6 +597,9 @@ public class GJNoArguDepthFirst implements GJNoArguVisitor<String> {
     */
    public String visit(AndExpression n) {
       String _ret=null;
+      if (!currentClass.isEmpty() && !currentMethod.isEmpty() && insideMethod) {
+         classes.get(currentClass).get(currentMethod).binaryOperations += 1;
+      }
       n.f0.accept(this);
       n.f1.accept(this);
       n.f2.accept(this);
@@ -586,6 +613,9 @@ public class GJNoArguDepthFirst implements GJNoArguVisitor<String> {
     */
    public String visit(AddExpression n) {
       String _ret=null;
+      if (!currentClass.isEmpty() && !currentMethod.isEmpty() && insideMethod) {
+         classes.get(currentClass).get(currentMethod).binaryOperations += 1;
+      }
       n.f0.accept(this);
       n.f1.accept(this);
       n.f2.accept(this);
@@ -599,6 +629,9 @@ public class GJNoArguDepthFirst implements GJNoArguVisitor<String> {
     */
    public String visit(SubExpression n) {
       String _ret=null;
+      if (!currentClass.isEmpty() && !currentMethod.isEmpty() && insideMethod) {
+         classes.get(currentClass).get(currentMethod).binaryOperations += 1;
+      }
       n.f0.accept(this);
       n.f1.accept(this);
       n.f2.accept(this);
@@ -612,6 +645,9 @@ public class GJNoArguDepthFirst implements GJNoArguVisitor<String> {
     */
    public String visit(MulExpression n) {
       String _ret=null;
+      if (!currentClass.isEmpty() && !currentMethod.isEmpty() && insideMethod) {
+         classes.get(currentClass).get(currentMethod).binaryOperations += 1;
+      }
       n.f0.accept(this);
       n.f1.accept(this);
       n.f2.accept(this);
@@ -625,6 +661,9 @@ public class GJNoArguDepthFirst implements GJNoArguVisitor<String> {
     */
    public String visit(DivExpression n) {
       String _ret=null;
+      if (!currentClass.isEmpty() && !currentMethod.isEmpty() && insideMethod) {
+         classes.get(currentClass).get(currentMethod).binaryOperations += 1;
+      }
       n.f0.accept(this);
       n.f1.accept(this);
       n.f2.accept(this);
