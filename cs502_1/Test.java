@@ -35,5 +35,17 @@ class A {
         }
         return a;
     }
+
+    public double priyam() {
+        double a;
+        int[] abc;
+        int l;
+        a = 1.3;
+        abc = new int[2];
+        abc[0] = 1;
+        abc[1] = 3;
+        l = abc.length;
+        return a;
+    }
 }
 class B extends A {}

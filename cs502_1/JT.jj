@@ -38,11 +38,13 @@ TOKEN :
 | < PLUS: "+" >
 | < AND : "&&" >
 | < CLASS: "class" >
+| < EXTENDS: "extends" >
 | < ELSE: "else" >
 | < FALSE: "false" >
 | < IF: "if" >
 | < WHILE: "while" >
 | < INTEGER: "int" >
+| < DOUBLE: "double" >
 | < BOOLEAN: "boolean" >
 | < MAIN: "main" >
 | < NEW: "new" >
@@ -59,6 +61,10 @@ TOKEN :
 TOKEN : /* LITERALS */
 {
   < INTEGER_LITERAL: ( ["1"-"9"] (["0"-"9"])* | "0" ) >
+|
+  < DOUBLE_LITERAL: ( ["1"-"9"] (["0"-"9"])* | "0" ) <DOT> (["0"-"9"])* >
+|
+  < ARRAY_LENGTH: <IDENTIFIER> <DOT> "length" >
 }
 
 TOKEN : /* IDENTIFIERS */
@@ -135,11 +141,16 @@ void TypeDeclaration() :
 void ClassDeclaration() :
 {}
 {
-  "class" Identifier() "{"
+  "class" Identifier() ( ExtendsClass() )* "{"
                            ( MethodDeclaration() )*
                        "}"
 }
 
+void ExtendsClass() :
+{}
+{
+  "extends" Identifier()
+}
 
 void VarDeclaration() :
 {}
@@ -182,6 +193,8 @@ void Type() :
 |
   IntegerType()
 |
+  DoubleType()
+|
   BooleanType()
 |
   Identifier()
@@ -197,6 +210,12 @@ void IntegerType() :
 {}
 {
   "int"
+}
+
+void DoubleType() :
+{}
+{
+  "double"
 }
 
 void BooleanType() :
@@ -279,8 +298,23 @@ void Expression() :
   LOOKAHEAD( PrimaryExpression() "==" )
   EqExpression()
 |
+  LOOKAHEAD( PrimaryExpression() "!=" )
+  NotEqExpression()
+|
+  LOOKAHEAD( PrimaryExpression() "&&" )
+  AndExpression()
+|
+  LOOKAHEAD( PrimaryExpression() "+" )
+  AddExpression()
+|
   LOOKAHEAD( PrimaryExpression() "-" )
   SubExpression()
+|
+  LOOKAHEAD( PrimaryExpression() "*" )
+  MulExpression()
+|
+  LOOKAHEAD( PrimaryExpression() "/" )
+  DivExpression()
 |
   LOOKAHEAD( PrimaryExpression() "." Identifier() "(" )
   MessageSend()
@@ -300,10 +334,40 @@ void EqExpression() :
   PrimaryExpression() "==" PrimaryExpression()
 }
 
+void NotEqExpression() :
+{}
+{
+  PrimaryExpression() "!=" PrimaryExpression()
+}
+
+void AndExpression() :
+{}
+{
+  PrimaryExpression() "&&" PrimaryExpression()
+}
+
+void AddExpression() :
+{}
+{
+  PrimaryExpression() "+" PrimaryExpression()
+}
+
 void SubExpression() :
 {}
 {
   PrimaryExpression() "-" PrimaryExpression()
+}
+
+void MulExpression() :
+{}
+{
+  PrimaryExpression() "*" PrimaryExpression()
+}
+
+void DivExpression() :
+{}
+{
+  PrimaryExpression() "/" PrimaryExpression()
 }
 
 void MessageSend() :
@@ -327,7 +391,11 @@ void ExpressionRest() :
 void PrimaryExpression() :
 {}
 {
+  ArrayLengthExpression()
+|
   IntegerLiteral()
+|
+  DoubleLiteral()
 |
   TrueLiteral()
 |
@@ -353,6 +421,11 @@ void IntegerLiteral() :
   <INTEGER_LITERAL>
 }
 
+void DoubleLiteral() :
+{}
+{
+  <DOUBLE_LITERAL>
+}
 
 void TrueLiteral() :
 {}
@@ -382,6 +455,12 @@ void ArrayAllocationExpression() :
 {}
 {
   "new" "int" "[" Expression() "]"
+}
+
+void ArrayLengthExpression() :
+{}
+{
+  <ARRAY_LENGTH>
 }
 
 void AllocationExpression() :
