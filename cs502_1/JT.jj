@@ -126,7 +126,7 @@ void Goal() :
 void MainClass() :
 {}
 {
-  "class" Identifier() "{"
+  "class" Identifier() ( ExtendsClass() )* "{"
     "public" "static" "void" "main" "(" "String" "[" "]" Identifier() ")"
     "{" PrintStatement() "}"
   "}"
@@ -393,6 +393,9 @@ void PrimaryExpression() :
 {
   ArrayLengthExpression()
 |
+  LOOKAHEAD(2)
+  ArrayLookupExression()
+|
   IntegerLiteral()
 |
   DoubleLiteral()
@@ -461,6 +464,12 @@ void ArrayLengthExpression() :
 {}
 {
   <ARRAY_LENGTH>
+}
+
+void ArrayLookupExression() :
+{}
+{
+  <IDENTIFIER> "[" Expression() "]"
 }
 
 void AllocationExpression() :

@@ -119,8 +119,8 @@ MainClass MainClass() :
    NodeToken n0;
    Token n1;
    Identifier n2;
-   NodeToken n3;
-   Token n4;
+   NodeListOptional n3 = new NodeListOptional();
+   ExtendsClass n4;
    NodeToken n5;
    Token n6;
    NodeToken n7;
@@ -137,39 +137,46 @@ MainClass MainClass() :
    Token n18;
    NodeToken n19;
    Token n20;
-   Identifier n21;
-   NodeToken n22;
-   Token n23;
+   NodeToken n21;
+   Token n22;
+   Identifier n23;
    NodeToken n24;
    Token n25;
-   PrintStatement n26;
-   NodeToken n27;
-   Token n28;
+   NodeToken n26;
+   Token n27;
+   PrintStatement n28;
    NodeToken n29;
    Token n30;
+   NodeToken n31;
+   Token n32;
 
    
 }
 {
    n1="class" { n0 = JTBToolkit.makeNodeToken(n1); }
    n2=Identifier()
-   n4="{" { n3 = JTBToolkit.makeNodeToken(n4); }
-   n6="public" { n5 = JTBToolkit.makeNodeToken(n6); }
-   n8="static" { n7 = JTBToolkit.makeNodeToken(n8); }
-   n10="void" { n9 = JTBToolkit.makeNodeToken(n10); }
-   n12="main" { n11 = JTBToolkit.makeNodeToken(n12); }
-   n14="(" { n13 = JTBToolkit.makeNodeToken(n14); }
-   n16="String" { n15 = JTBToolkit.makeNodeToken(n16); }
-   n18="[" { n17 = JTBToolkit.makeNodeToken(n18); }
-   n20="]" { n19 = JTBToolkit.makeNodeToken(n20); }
-   n21=Identifier()
-   n23=")" { n22 = JTBToolkit.makeNodeToken(n23); }
-   n25="{" { n24 = JTBToolkit.makeNodeToken(n25); }
-   n26=PrintStatement()
-   n28="}" { n27 = JTBToolkit.makeNodeToken(n28); }
+   (
+      n4=ExtendsClass()
+      { n3.addNode(n4); }
+   )*
+   { n3.nodes.trimToSize(); }
+   n6="{" { n5 = JTBToolkit.makeNodeToken(n6); }
+   n8="public" { n7 = JTBToolkit.makeNodeToken(n8); }
+   n10="static" { n9 = JTBToolkit.makeNodeToken(n10); }
+   n12="void" { n11 = JTBToolkit.makeNodeToken(n12); }
+   n14="main" { n13 = JTBToolkit.makeNodeToken(n14); }
+   n16="(" { n15 = JTBToolkit.makeNodeToken(n16); }
+   n18="String" { n17 = JTBToolkit.makeNodeToken(n18); }
+   n20="[" { n19 = JTBToolkit.makeNodeToken(n20); }
+   n22="]" { n21 = JTBToolkit.makeNodeToken(n22); }
+   n23=Identifier()
+   n25=")" { n24 = JTBToolkit.makeNodeToken(n25); }
+   n27="{" { n26 = JTBToolkit.makeNodeToken(n27); }
+   n28=PrintStatement()
    n30="}" { n29 = JTBToolkit.makeNodeToken(n30); }
+   n32="}" { n31 = JTBToolkit.makeNodeToken(n32); }
    
-   { return new MainClass(n0,n2,n3,n5,n7,n9,n11,n13,n15,n17,n19,n21,n22,n24,n26,n27,n29); }
+   { return new MainClass(n0,n2,n3,n5,n7,n9,n11,n13,n15,n17,n19,n21,n23,n24,n26,n28,n29,n31); }
 }
 
 TypeDeclaration TypeDeclaration() :
@@ -940,16 +947,17 @@ PrimaryExpression PrimaryExpression() :
 {
    NodeChoice n0;
    ArrayLengthExpression n1;
-   IntegerLiteral n2;
-   DoubleLiteral n3;
-   TrueLiteral n4;
-   FalseLiteral n5;
-   Identifier n6;
-   ThisExpression n7;
-   ArrayAllocationExpression n8;
-   AllocationExpression n9;
-   NotExpression n10;
-   BracketExpression n11;
+   ArrayLookupExression n2;
+   IntegerLiteral n3;
+   DoubleLiteral n4;
+   TrueLiteral n5;
+   FalseLiteral n6;
+   Identifier n7;
+   ThisExpression n8;
+   ArrayAllocationExpression n9;
+   AllocationExpression n10;
+   NotExpression n11;
+   BracketExpression n12;
 
    
 }
@@ -958,36 +966,40 @@ PrimaryExpression PrimaryExpression() :
       n1=ArrayLengthExpression()
       { n0 = new NodeChoice(n1, 0); }
    |
-      n2=IntegerLiteral()
+      LOOKAHEAD(2)
+      n2=ArrayLookupExression()
       { n0 = new NodeChoice(n2, 1); }
    |
-      n3=DoubleLiteral()
+      n3=IntegerLiteral()
       { n0 = new NodeChoice(n3, 2); }
    |
-      n4=TrueLiteral()
+      n4=DoubleLiteral()
       { n0 = new NodeChoice(n4, 3); }
    |
-      n5=FalseLiteral()
+      n5=TrueLiteral()
       { n0 = new NodeChoice(n5, 4); }
    |
-      n6=Identifier()
+      n6=FalseLiteral()
       { n0 = new NodeChoice(n6, 5); }
    |
-      n7=ThisExpression()
+      n7=Identifier()
       { n0 = new NodeChoice(n7, 6); }
    |
-      LOOKAHEAD(3)
-      n8=ArrayAllocationExpression()
+      n8=ThisExpression()
       { n0 = new NodeChoice(n8, 7); }
    |
-      n9=AllocationExpression()
+      LOOKAHEAD(3)
+      n9=ArrayAllocationExpression()
       { n0 = new NodeChoice(n9, 8); }
    |
-      n10=NotExpression()
+      n10=AllocationExpression()
       { n0 = new NodeChoice(n10, 9); }
    |
-      n11=BracketExpression()
+      n11=NotExpression()
       { n0 = new NodeChoice(n11, 10); }
+   |
+      n12=BracketExpression()
+      { n0 = new NodeChoice(n12, 11); }
    )
    
    { return new PrimaryExpression(n0); }
@@ -1106,6 +1118,27 @@ ArrayLengthExpression ArrayLengthExpression() :
    n1=<ARRAY_LENGTH> { n0 = JTBToolkit.makeNodeToken(n1); }
    
    { return new ArrayLengthExpression(n0); }
+}
+
+ArrayLookupExression ArrayLookupExression() :
+{
+   NodeToken n0;
+   Token n1;
+   NodeToken n2;
+   Token n3;
+   Expression n4;
+   NodeToken n5;
+   Token n6;
+
+   
+}
+{
+   n1=<IDENTIFIER> { n0 = JTBToolkit.makeNodeToken(n1); }
+   n3="[" { n2 = JTBToolkit.makeNodeToken(n3); }
+   n4=Expression()
+   n6="]" { n5 = JTBToolkit.makeNodeToken(n6); }
+   
+   { return new ArrayLookupExression(n0,n2,n4,n5); }
 }
 
 AllocationExpression AllocationExpression() :

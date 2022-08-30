@@ -65,21 +65,22 @@ public class GJVoidDepthFirst<A> implements GJVoidVisitor<A> {
    /**
     * f0 -> "class"
     * f1 -> Identifier()
-    * f2 -> "{"
-    * f3 -> "public"
-    * f4 -> "static"
-    * f5 -> "void"
-    * f6 -> "main"
-    * f7 -> "("
-    * f8 -> "String"
-    * f9 -> "["
-    * f10 -> "]"
-    * f11 -> Identifier()
-    * f12 -> ")"
-    * f13 -> "{"
-    * f14 -> PrintStatement()
-    * f15 -> "}"
+    * f2 -> ( ExtendsClass() )*
+    * f3 -> "{"
+    * f4 -> "public"
+    * f5 -> "static"
+    * f6 -> "void"
+    * f7 -> "main"
+    * f8 -> "("
+    * f9 -> "String"
+    * f10 -> "["
+    * f11 -> "]"
+    * f12 -> Identifier()
+    * f13 -> ")"
+    * f14 -> "{"
+    * f15 -> PrintStatement()
     * f16 -> "}"
+    * f17 -> "}"
     */
    public void visit(MainClass n, A argu) {
       n.f0.accept(this, argu);
@@ -99,6 +100,7 @@ public class GJVoidDepthFirst<A> implements GJVoidVisitor<A> {
       n.f14.accept(this, argu);
       n.f15.accept(this, argu);
       n.f16.accept(this, argu);
+      n.f17.accept(this, argu);
    }
 
    /**
@@ -514,6 +516,7 @@ public class GJVoidDepthFirst<A> implements GJVoidVisitor<A> {
 
    /**
     * f0 -> ArrayLengthExpression()
+    *       | ArrayLookupExression()
     *       | IntegerLiteral()
     *       | DoubleLiteral()
     *       | TrueLiteral()
@@ -591,6 +594,19 @@ public class GJVoidDepthFirst<A> implements GJVoidVisitor<A> {
     */
    public void visit(ArrayLengthExpression n, A argu) {
       n.f0.accept(this, argu);
+   }
+
+   /**
+    * f0 -> <IDENTIFIER>
+    * f1 -> "["
+    * f2 -> Expression()
+    * f3 -> "]"
+    */
+   public void visit(ArrayLookupExression n, A argu) {
+      n.f0.accept(this, argu);
+      n.f1.accept(this, argu);
+      n.f2.accept(this, argu);
+      n.f3.accept(this, argu);
    }
 
    /**

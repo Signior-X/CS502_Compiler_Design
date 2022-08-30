@@ -1,8 +1,12 @@
-class Test {
+class Test extends C {
     public static void main(String[] args) { //no of params = 1
         System.out.println(new A().foo(10));
     }
 }
+class C {
+    
+}
+
 class A {
     public int foo(int p) { //no of params = 1
         int x; //local var1
@@ -39,11 +43,17 @@ class A {
     public double priyam() {
         double a;
         int[] abc;
+        int [] abc2;
         int l;
+        int b;
+        b = 5;
         a = 1.3;
         abc = new int[2];
+        abc2 = new int[1];
         abc[0] = 1;
         abc[1] = 3;
+        abc2[0] = abc[0];
+        l = abc[b];
         l = abc.length;
         return a;
     }

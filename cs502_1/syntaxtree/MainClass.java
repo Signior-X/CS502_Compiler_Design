@@ -8,26 +8,27 @@ package syntaxtree;
  * Grammar production:
  * f0 -> "class"
  * f1 -> Identifier()
- * f2 -> "{"
- * f3 -> "public"
- * f4 -> "static"
- * f5 -> "void"
- * f6 -> "main"
- * f7 -> "("
- * f8 -> "String"
- * f9 -> "["
- * f10 -> "]"
- * f11 -> Identifier()
- * f12 -> ")"
- * f13 -> "{"
- * f14 -> PrintStatement()
- * f15 -> "}"
+ * f2 -> ( ExtendsClass() )*
+ * f3 -> "{"
+ * f4 -> "public"
+ * f5 -> "static"
+ * f6 -> "void"
+ * f7 -> "main"
+ * f8 -> "("
+ * f9 -> "String"
+ * f10 -> "["
+ * f11 -> "]"
+ * f12 -> Identifier()
+ * f13 -> ")"
+ * f14 -> "{"
+ * f15 -> PrintStatement()
  * f16 -> "}"
+ * f17 -> "}"
  */
 public class MainClass implements Node {
    public NodeToken f0;
    public Identifier f1;
-   public NodeToken f2;
+   public NodeListOptional f2;
    public NodeToken f3;
    public NodeToken f4;
    public NodeToken f5;
@@ -36,14 +37,15 @@ public class MainClass implements Node {
    public NodeToken f8;
    public NodeToken f9;
    public NodeToken f10;
-   public Identifier f11;
-   public NodeToken f12;
+   public NodeToken f11;
+   public Identifier f12;
    public NodeToken f13;
-   public PrintStatement f14;
-   public NodeToken f15;
+   public NodeToken f14;
+   public PrintStatement f15;
    public NodeToken f16;
+   public NodeToken f17;
 
-   public MainClass(NodeToken n0, Identifier n1, NodeToken n2, NodeToken n3, NodeToken n4, NodeToken n5, NodeToken n6, NodeToken n7, NodeToken n8, NodeToken n9, NodeToken n10, Identifier n11, NodeToken n12, NodeToken n13, PrintStatement n14, NodeToken n15, NodeToken n16) {
+   public MainClass(NodeToken n0, Identifier n1, NodeListOptional n2, NodeToken n3, NodeToken n4, NodeToken n5, NodeToken n6, NodeToken n7, NodeToken n8, NodeToken n9, NodeToken n10, NodeToken n11, Identifier n12, NodeToken n13, NodeToken n14, PrintStatement n15, NodeToken n16, NodeToken n17) {
       f0 = n0;
       f1 = n1;
       f2 = n2;
@@ -61,26 +63,28 @@ public class MainClass implements Node {
       f14 = n14;
       f15 = n15;
       f16 = n16;
+      f17 = n17;
    }
 
-   public MainClass(Identifier n0, Identifier n1, PrintStatement n2) {
+   public MainClass(Identifier n0, NodeListOptional n1, Identifier n2, PrintStatement n3) {
       f0 = new NodeToken("class");
       f1 = n0;
-      f2 = new NodeToken("{");
-      f3 = new NodeToken("public");
-      f4 = new NodeToken("static");
-      f5 = new NodeToken("void");
-      f6 = new NodeToken("main");
-      f7 = new NodeToken("(");
-      f8 = new NodeToken("String");
-      f9 = new NodeToken("[");
-      f10 = new NodeToken("]");
-      f11 = n1;
-      f12 = new NodeToken(")");
-      f13 = new NodeToken("{");
-      f14 = n2;
-      f15 = new NodeToken("}");
+      f2 = n1;
+      f3 = new NodeToken("{");
+      f4 = new NodeToken("public");
+      f5 = new NodeToken("static");
+      f6 = new NodeToken("void");
+      f7 = new NodeToken("main");
+      f8 = new NodeToken("(");
+      f9 = new NodeToken("String");
+      f10 = new NodeToken("[");
+      f11 = new NodeToken("]");
+      f12 = n2;
+      f13 = new NodeToken(")");
+      f14 = new NodeToken("{");
+      f15 = n3;
       f16 = new NodeToken("}");
+      f17 = new NodeToken("}");
    }
 
    public void accept(visitor.Visitor v) {

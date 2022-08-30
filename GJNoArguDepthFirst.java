@@ -31,16 +31,16 @@ class MethodAnswer {
  * order.  Your visitors may extend this class.
  */
 public class GJNoArguDepthFirst implements GJNoArguVisitor<String> {
-      // class name, extends to which class
-      Map<String, String> extendsTo = new TreeMap<String, String>();
+   // class name, extends to which class
+   Map<String, String> extendsTo = new TreeMap<String, String>();
    
-      // Class Name, TreeMap of each method
-      Map<String, TreeMap<String, MethodAnswer>> classes = new TreeMap<String, TreeMap<String, MethodAnswer>>();
-   
-      // Storing the current class
-      private String currentClass = "";
-      private String currentMethod = "";
-      private boolean insideMethod = false;
+   // Class Name, TreeMap of each method
+   Map<String, TreeMap<String, MethodAnswer>> classes = new TreeMap<String, TreeMap<String, MethodAnswer>>();
+
+   // Storing the current class
+   private String currentClass = "";
+   private String currentMethod = "";
+   private boolean insideMethod = false;
 
    //
    // Auto class visitors--probably don't need to be overridden.
@@ -99,6 +99,9 @@ public class GJNoArguDepthFirst implements GJNoArguVisitor<String> {
     */
    public String visit(Goal n) {
       String _ret=null;
+
+      // System.out.println("PRIYAM: " + n.f0.toString());
+
       n.f0.accept(this);
       n.f1.accept(this);
       n.f2.accept(this);
@@ -128,22 +131,21 @@ public class GJNoArguDepthFirst implements GJNoArguVisitor<String> {
    /**
     * f0 -> "class"
     * f1 -> Identifier()
-    * f2 -> ( ExtendsClass() )*
-    * f3 -> "{"
-    * f4 -> "public"
-    * f5 -> "static"
-    * f6 -> "void"
-    * f7 -> "main"
-    * f8 -> "("
-    * f9 -> "String"
-    * f10 -> "["
-    * f11 -> "]"
-    * f12 -> Identifier()
-    * f13 -> ")"
-    * f14 -> "{"
-    * f15 -> PrintStatement()
+    * f2 -> "{"
+    * f3 -> "public"
+    * f4 -> "static"
+    * f5 -> "void"
+    * f6 -> "main"
+    * f7 -> "("
+    * f8 -> "String"
+    * f9 -> "["
+    * f10 -> "]"
+    * f11 -> Identifier()
+    * f12 -> ")"
+    * f13 -> "{"
+    * f14 -> PrintStatement()
+    * f15 -> "}"
     * f16 -> "}"
-    * f17 -> "}"
     */
    public String visit(MainClass n) {
       String _ret=null;
@@ -158,28 +160,27 @@ public class GJNoArguDepthFirst implements GJNoArguVisitor<String> {
       n.f4.accept(this);
       n.f5.accept(this);
       n.f6.accept(this);
-      n.f7.accept(this);
 
       String methodName = className + ".main";
       classes.get(className).put(methodName, new MethodAnswer(methodName));
       classes.get(className).get(methodName).nParams += 1;
       currentMethod = methodName;
 
+      n.f7.accept(this);
       n.f8.accept(this);
       n.f9.accept(this);
       n.f10.accept(this);
       n.f11.accept(this);
       n.f12.accept(this);
       n.f13.accept(this);
-      n.f14.accept(this);
       insideMethod = true;
 
+      n.f14.accept(this);
       n.f15.accept(this);
-      n.f16.accept(this);
       insideMethod = false;
       currentMethod = "";
 
-      n.f17.accept(this);
+      n.f16.accept(this);
       currentClass = "";
 
       return _ret;
@@ -236,7 +237,7 @@ public class GJNoArguDepthFirst implements GJNoArguVisitor<String> {
     */
    public String visit(VarDeclaration n) {
       String _ret=null;
-
+      
       // PRIYAM var declararation
       if (!currentClass.isEmpty() && !currentMethod.isEmpty() && insideMethod) {
          classes.get(currentClass).get(currentMethod).localVars += 1;
@@ -263,7 +264,7 @@ public class GJNoArguDepthFirst implements GJNoArguVisitor<String> {
     * f11 -> ";"
     * f12 -> "}"
     */
-    public String visit(MethodDeclaration n) {
+   public String visit(MethodDeclaration n) {
       String _ret=null;
       n.f0.accept(this);
       n.f1.accept(this);
@@ -303,7 +304,7 @@ public class GJNoArguDepthFirst implements GJNoArguVisitor<String> {
     * f0 -> Type()
     * f1 -> Identifier()
     */
-    public String visit(FormalParameter n) {
+   public String visit(FormalParameter n) {
       String _ret=null;
       n.f0.accept(this);
       n.f1.accept(this);
@@ -410,7 +411,10 @@ public class GJNoArguDepthFirst implements GJNoArguVisitor<String> {
     */
    public String visit(AssignmentStatement n) {
       String _ret=null;
-      n.f0.accept(this);
+      String lhs = n.f0.accept(this);
+
+      // System.out.println("LHS: " + currentMethod + " " + lhs);
+
       n.f1.accept(this);
       n.f2.accept(this);
       n.f3.accept(this);
@@ -709,7 +713,6 @@ public class GJNoArguDepthFirst implements GJNoArguVisitor<String> {
 
    /**
     * f0 -> ArrayLengthExpression()
-    *       | ArrayLookupExression()
     *       | IntegerLiteral()
     *       | DoubleLiteral()
     *       | TrueLiteral()
@@ -804,21 +807,6 @@ public class GJNoArguDepthFirst implements GJNoArguVisitor<String> {
    public String visit(ArrayLengthExpression n) {
       String _ret=null;
       n.f0.accept(this);
-      return _ret;
-   }
-
-   /**
-    * f0 -> <IDENTIFIER>
-    * f1 -> "["
-    * f2 -> Expression()
-    * f3 -> "]"
-    */
-   public String visit(ArrayLookupExression n) {
-      String _ret=null;
-      n.f0.accept(this);
-      n.f1.accept(this);
-      n.f2.accept(this);
-      n.f3.accept(this);
       return _ret;
    }
 
