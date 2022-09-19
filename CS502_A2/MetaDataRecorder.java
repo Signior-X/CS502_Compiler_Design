@@ -8,92 +8,20 @@ import java.util.*;
 
 /**
  * Provides default methods which visit each node in the tree in depth-first
- * order. Your visitors may extend this class.
+ * order.  Your visitors may extend this class.
  */
-public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> {
+public class MetaDataRecorder extends GJDepthFirst<String,Map<String,String>> {
    //
    // User-generated visitor methods below
    //
-
-   private int BinOpsErrors;
-   private int ConditionErrors;
-   private int AssignmentErrors;
-   private int FunctionErrors;
 
    private String currentClass = "";
    private String currentMethod = "";
    private boolean insideMethod = false;
 
-   public TypeCheckVisitor() {
-      // MetaData.printMetaData();
-
-      BinOpsErrors = 0;
-      ConditionErrors = 0;
-      AssignmentErrors = 0;
-      FunctionErrors = 0;
-   }
-
-   private String getType(String value) {
-      // if null return null
-      // if some defined type, return value
-      // if variable stored in current scope
-      // else return null
-      return MetaData.getVarType(currentClass, currentMethod, value);
-   }
-
-   /**
-    * Check if valid binary operation and if yes
-    * return the correct type
-    */
-   private String BinOpsCheck(String type1, String type2, String operand) {
-      System.out.println("BINARY OPS");
-      System.out.println("  BEFORE: " + type1 + " : " + operand + " : " + type2);
-
-      type1 = getType(type1);
-      type2 = getType(type2);
-
-      if (operand == "+" || operand == "-"
-            || operand == "*" || operand == "/") {
-         if (type1 == "float" && type2 == "float") {
-            return "float";
-         } else if (type1 == "float" && type2 == "int") {
-            return "float";
-         } else if (type1 == "int" && type2 == "float") {
-            return "float";
-         } else if (type1 == "int" && type2 == "int") {
-            return "int";
-         } else {
-            System.out.println("    ERROR: " + type1 + " : " + operand + " : " + type2);
-
-            BinOpsErrors++;
-            return null;
-         }
-      }
-
-      System.out.println("  AFTER: " + type1 + " : " + operand + " : " + type2);
-
-      return null;
-   }
-
-   private void AssignmentOpsCheck(String lhs, String rhs) {
-      System.out.println("ASSIGNMENT OPS");
-      System.out.println("  BEFORE: " + lhs + " : " + "=" + " : " + rhs);
-
-      lhs = getType(lhs);
-      rhs = getType(rhs);
-
-      System.out.println("  AFTER: " + lhs + " : " + "=" + " : " + rhs);
-
-      if (lhs == rhs) {
-         return;
-      }
-      
-      // we need to check if lhs can take rhs into it
-      if (lhs == "float" && rhs == "int") {
-         return;
-      }
-
-      // Inheritance check TODO
+   MetaData metaDataObj;
+   public MetaDataRecorder() {
+      metaDataObj = new MetaData();
    }
 
    /**
@@ -101,17 +29,11 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f1 -> ( TypeDeclaration() )*
     * f2 -> <EOF>
     */
-   public String visit(Goal n, Map<String, String> argu) {
-      String _ret = null;
+   public String visit(Goal n, Map<String,String> argu) {
+      String _ret=null;
       n.f0.accept(this, argu);
       n.f1.accept(this, argu);
       n.f2.accept(this, argu);
-
-      System.out.println("Assignment: " + AssignmentErrors);
-      System.out.println("Binop: " + BinOpsErrors);
-      System.out.println("Control: " + ConditionErrors);
-      System.out.println("Function: " + FunctionErrors);
-
       return _ret;
    }
 
@@ -134,20 +56,24 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f15 -> "}"
     * f16 -> "}"
     */
-   public String visit(MainClass n, Map<String, String> argu) {
-      String _ret = null;
+   public String visit(MainClass n, Map<String,String> argu) {
+      String _ret=null;
       n.f0.accept(this, argu);
       currentClass = n.f1.accept(this, argu);
+      MetaData.addClass(currentClass);
       n.f2.accept(this, argu);
       n.f3.accept(this, argu);
       n.f4.accept(this, argu);
       n.f5.accept(this, argu);
       currentMethod = n.f6.accept(this, argu);
+      MetaData.addFunction(currentClass, currentMethod);
       n.f7.accept(this, argu);
       n.f8.accept(this, argu);
       n.f9.accept(this, argu);
       n.f10.accept(this, argu);
+      // ArgName of type String[]
       n.f11.accept(this, argu);
+      MetaData.addParameterType(currentClass, currentMethod, "String[]");
       n.f12.accept(this, argu);
       insideMethod = true;
       n.f13.accept(this, argu);
@@ -162,10 +88,10 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
 
    /**
     * f0 -> ClassDeclaration()
-    * | ClassExtendsDeclaration()
+    *       | ClassExtendsDeclaration()
     */
-   public String visit(TypeDeclaration n, Map<String, String> argu) {
-      String _ret = null;
+   public String visit(TypeDeclaration n, Map<String,String> argu) {
+      String _ret=null;
       n.f0.accept(this, argu);
       return _ret;
    }
@@ -177,10 +103,11 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f3 -> ( MethodDeclaration() )*
     * f4 -> "}"
     */
-   public String visit(ClassDeclaration n, Map<String, String> argu) {
-      String _ret = null;
+   public String visit(ClassDeclaration n, Map<String,String> argu) {
+      String _ret=null;
       n.f0.accept(this, argu);
       currentClass = n.f1.accept(this, argu);
+      MetaData.addClass(currentClass);
       n.f2.accept(this, argu);
       n.f3.accept(this, argu);
       n.f4.accept(this, argu);
@@ -197,12 +124,14 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f5 -> ( MethodDeclaration() )*
     * f6 -> "}"
     */
-   public String visit(ClassExtendsDeclaration n, Map<String, String> argu) {
-      String _ret = null;
+   public String visit(ClassExtendsDeclaration n, Map<String,String> argu) {
+      String _ret=null;
       n.f0.accept(this, argu);
       currentClass = n.f1.accept(this, argu);
+      MetaData.addClass(currentClass);
       n.f2.accept(this, argu);
-      n.f3.accept(this, argu);
+      String parentClass = n.f3.accept(this, argu);
+      MetaData.inheritanceGraph.put(currentClass, parentClass);
       n.f4.accept(this, argu);
       n.f5.accept(this, argu);
       n.f6.accept(this, argu);
@@ -215,10 +144,11 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f1 -> Identifier()
     * f2 -> ";"
     */
-   public String visit(VarDeclaration n, Map<String, String> argu) {
-      String _ret = null;
-      n.f0.accept(this, argu);
-      n.f1.accept(this, argu);
+   public String visit(VarDeclaration n, Map<String,String> argu) {
+      String _ret=null;
+      String type = n.f0.accept(this, argu);
+      String var = n.f1.accept(this, argu);
+      MetaData.addVariable(currentClass, currentMethod, var, type);
       n.f2.accept(this, argu);
       return _ret;
    }
@@ -238,11 +168,13 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f11 -> ";"
     * f12 -> "}"
     */
-   public String visit(MethodDeclaration n, Map<String, String> argu) {
-      String _ret = null;
+   public String visit(MethodDeclaration n, Map<String,String> argu) {
+      String _ret=null;
       n.f0.accept(this, argu);
-      n.f1.accept(this, argu);
+      String returnType = n.f1.accept(this, argu);
       currentMethod = n.f2.accept(this, argu);
+      MetaData.addFunction(currentClass, currentMethod);
+      MetaData.functionMetadata.get(currentClass).get(currentMethod).returnType = returnType;
       n.f3.accept(this, argu);
       n.f4.accept(this, argu);
       n.f5.accept(this, argu);
@@ -263,8 +195,8 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f0 -> FormalParameter()
     * f1 -> ( FormalParameterRest() )*
     */
-   public String visit(FormalParameterList n, Map<String, String> argu) {
-      String _ret = null;
+   public String visit(FormalParameterList n, Map<String,String> argu) {
+      String _ret=null;
       n.f0.accept(this, argu);
       n.f1.accept(this, argu);
       return _ret;
@@ -274,10 +206,12 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f0 -> Type()
     * f1 -> Identifier()
     */
-   public String visit(FormalParameter n, Map<String, String> argu) {
-      String _ret = null;
-      n.f0.accept(this, argu);
-      n.f1.accept(this, argu);
+   public String visit(FormalParameter n, Map<String,String> argu) {
+      String _ret=null;
+      String parameterType = n.f0.accept(this, argu);
+      MetaData.addParameterType(currentClass, currentMethod, parameterType);
+      String var = n.f1.accept(this, argu);
+      MetaData.addVariable(currentClass, currentMethod, var, parameterType);
       return _ret;
    }
 
@@ -285,8 +219,8 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f0 -> ","
     * f1 -> FormalParameter()
     */
-   public String visit(FormalParameterRest n, Map<String, String> argu) {
-      String _ret = null;
+   public String visit(FormalParameterRest n, Map<String,String> argu) {
+      String _ret=null;
       n.f0.accept(this, argu);
       n.f1.accept(this, argu);
       return _ret;
@@ -294,52 +228,44 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
 
    /**
     * f0 -> BooleanType()
-    * | IntegerType()
-    * | FloatType()
-    * | Identifier()
+    *       | IntegerType()
+    *       | FloatType()
+    *       | Identifier()
     */
-   public String visit(Type n, Map<String, String> argu) {
-      String _ret = null;
-      n.f0.accept(this, argu);
-      return _ret;
+   public String visit(Type n, Map<String,String> argu) {
+      return n.f0.accept(this, argu);
    }
 
    /**
     * f0 -> "boolean"
     */
-   public String visit(BooleanType n, Map<String, String> argu) {
-      String _ret = null;
-      n.f0.accept(this, argu);
-      return _ret;
+   public String visit(BooleanType n, Map<String,String> argu) {
+      return "boolean";
    }
 
    /**
     * f0 -> "int"
     */
-   public String visit(IntegerType n, Map<String, String> argu) {
-      String _ret = null;
-      n.f0.accept(this, argu);
-      return _ret;
+   public String visit(IntegerType n, Map<String,String> argu) {
+      return "int";
    }
 
    /**
     * f0 -> "float"
     */
-   public String visit(FloatType n, Map<String, String> argu) {
-      String _ret = null;
-      n.f0.accept(this, argu);
-      return _ret;
+   public String visit(FloatType n, Map<String,String> argu) {
+      return "float";
    }
 
    /**
     * f0 -> Block()
-    * | AssignmentStatement()
-    * | IfStatement()
-    * | WhileStatement()
-    * | PrintStatement()
+    *       | AssignmentStatement()
+    *       | IfStatement()
+    *       | WhileStatement()
+    *       | PrintStatement()
     */
-   public String visit(Statement n, Map<String, String> argu) {
-      String _ret = null;
+   public String visit(Statement n, Map<String,String> argu) {
+      String _ret=null;
       n.f0.accept(this, argu);
       return _ret;
    }
@@ -349,8 +275,8 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f1 -> ( Statement() )*
     * f2 -> "}"
     */
-   public String visit(Block n, Map<String, String> argu) {
-      String _ret = null;
+   public String visit(Block n, Map<String,String> argu) {
+      String _ret=null;
       n.f0.accept(this, argu);
       n.f1.accept(this, argu);
       n.f2.accept(this, argu);
@@ -363,22 +289,21 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f2 -> Expression()
     * f3 -> ";"
     */
-   public String visit(AssignmentStatement n, Map<String, String> argu) {
-      String _ret = null;
-      String lhs = n.f0.accept(this, argu);
+   public String visit(AssignmentStatement n, Map<String,String> argu) {
+      String _ret=null;
+      n.f0.accept(this, argu);
       n.f1.accept(this, argu);
-      String rhs = n.f2.accept(this, argu);
+      n.f2.accept(this, argu);
       n.f3.accept(this, argu);
-      AssignmentOpsCheck(lhs, rhs);
       return _ret;
    }
 
    /**
     * f0 -> IfthenElseStatement()
-    * | IfthenStatement()
+    *       | IfthenStatement()
     */
-   public String visit(IfStatement n, Map<String, String> argu) {
-      String _ret = null;
+   public String visit(IfStatement n, Map<String,String> argu) {
+      String _ret=null;
       n.f0.accept(this, argu);
       return _ret;
    }
@@ -390,8 +315,8 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f3 -> ")"
     * f4 -> Statement()
     */
-   public String visit(IfthenStatement n, Map<String, String> argu) {
-      String _ret = null;
+   public String visit(IfthenStatement n, Map<String,String> argu) {
+      String _ret=null;
       n.f0.accept(this, argu);
       n.f1.accept(this, argu);
       n.f2.accept(this, argu);
@@ -409,8 +334,8 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f5 -> "else"
     * f6 -> Statement()
     */
-   public String visit(IfthenElseStatement n, Map<String, String> argu) {
-      String _ret = null;
+   public String visit(IfthenElseStatement n, Map<String,String> argu) {
+      String _ret=null;
       n.f0.accept(this, argu);
       n.f1.accept(this, argu);
       n.f2.accept(this, argu);
@@ -428,8 +353,8 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f3 -> ")"
     * f4 -> Statement()
     */
-   public String visit(WhileStatement n, Map<String, String> argu) {
-      String _ret = null;
+   public String visit(WhileStatement n, Map<String,String> argu) {
+      String _ret=null;
       n.f0.accept(this, argu);
       n.f1.accept(this, argu);
       n.f2.accept(this, argu);
@@ -445,8 +370,8 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f3 -> ")"
     * f4 -> ";"
     */
-   public String visit(PrintStatement n, Map<String, String> argu) {
-      String _ret = null;
+   public String visit(PrintStatement n, Map<String,String> argu) {
+      String _ret=null;
       n.f0.accept(this, argu);
       n.f1.accept(this, argu);
       n.f2.accept(this, argu);
@@ -457,18 +382,20 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
 
    /**
     * f0 -> OrExpression()
-    * | AndExpression()
-    * | CompareExpression()
-    * | neqExpression()
-    * | PlusExpression()
-    * | MinusExpression()
-    * | TimesExpression()
-    * | DivExpression()
-    * | MessageSend()
-    * | PrimaryExpression()
+    *       | AndExpression()
+    *       | CompareExpression()
+    *       | neqExpression()
+    *       | PlusExpression()
+    *       | MinusExpression()
+    *       | TimesExpression()
+    *       | DivExpression()
+    *       | MessageSend()
+    *       | PrimaryExpression()
     */
-   public String visit(Expression n, Map<String, String> argu) {
-      return n.f0.accept(this, argu);
+   public String visit(Expression n, Map<String,String> argu) {
+      String _ret=null;
+      n.f0.accept(this, argu);
+      return _ret;
    }
 
    /**
@@ -476,8 +403,8 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f1 -> "&&"
     * f2 -> PrimaryExpression()
     */
-   public String visit(AndExpression n, Map<String, String> argu) {
-      String _ret = null;
+   public String visit(AndExpression n, Map<String,String> argu) {
+      String _ret=null;
       n.f0.accept(this, argu);
       n.f1.accept(this, argu);
       n.f2.accept(this, argu);
@@ -489,8 +416,8 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f1 -> "||"
     * f2 -> PrimaryExpression()
     */
-   public String visit(OrExpression n, Map<String, String> argu) {
-      String _ret = null;
+   public String visit(OrExpression n, Map<String,String> argu) {
+      String _ret=null;
       n.f0.accept(this, argu);
       n.f1.accept(this, argu);
       n.f2.accept(this, argu);
@@ -502,8 +429,8 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f1 -> "<="
     * f2 -> PrimaryExpression()
     */
-   public String visit(CompareExpression n, Map<String, String> argu) {
-      String _ret = null;
+   public String visit(CompareExpression n, Map<String,String> argu) {
+      String _ret=null;
       n.f0.accept(this, argu);
       n.f1.accept(this, argu);
       n.f2.accept(this, argu);
@@ -515,8 +442,8 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f1 -> "!="
     * f2 -> PrimaryExpression()
     */
-   public String visit(neqExpression n, Map<String, String> argu) {
-      String _ret = null;
+   public String visit(neqExpression n, Map<String,String> argu) {
+      String _ret=null;
       n.f0.accept(this, argu);
       n.f1.accept(this, argu);
       n.f2.accept(this, argu);
@@ -528,11 +455,12 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f1 -> "+"
     * f2 -> PrimaryExpression()
     */
-   public String visit(PlusExpression n, Map<String, String> argu) {
-      String type1 = n.f0.accept(this, argu);
+   public String visit(PlusExpression n, Map<String,String> argu) {
+      String _ret=null;
+      n.f0.accept(this, argu);
       n.f1.accept(this, argu);
-      String type2 = n.f2.accept(this, argu);
-      return BinOpsCheck(type1, type2, "+");
+      n.f2.accept(this, argu);
+      return _ret;
    }
 
    /**
@@ -540,11 +468,12 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f1 -> "-"
     * f2 -> PrimaryExpression()
     */
-   public String visit(MinusExpression n, Map<String, String> argu) {
-      String type1 = n.f0.accept(this, argu);
+   public String visit(MinusExpression n, Map<String,String> argu) {
+      String _ret=null;
+      n.f0.accept(this, argu);
       n.f1.accept(this, argu);
-      String type2 = n.f2.accept(this, argu);
-      return BinOpsCheck(type1, type2, "-");
+      n.f2.accept(this, argu);
+      return _ret;
    }
 
    /**
@@ -552,11 +481,12 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f1 -> "*"
     * f2 -> PrimaryExpression()
     */
-   public String visit(TimesExpression n, Map<String, String> argu) {
-      String type1 = n.f0.accept(this, argu);
+   public String visit(TimesExpression n, Map<String,String> argu) {
+      String _ret=null;
+      n.f0.accept(this, argu);
       n.f1.accept(this, argu);
-      String type2 = n.f2.accept(this, argu);
-      return BinOpsCheck(type1, type2, "*");
+      n.f2.accept(this, argu);
+      return _ret;
    }
 
    /**
@@ -564,11 +494,12 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f1 -> "/"
     * f2 -> PrimaryExpression()
     */
-   public String visit(DivExpression n, Map<String, String> argu) {
-      String type1 = n.f0.accept(this, argu);
+   public String visit(DivExpression n, Map<String,String> argu) {
+      String _ret=null;
+      n.f0.accept(this, argu);
       n.f1.accept(this, argu);
-      String type2 = n.f2.accept(this, argu);
-      return BinOpsCheck(type1, type2, "/");
+      n.f2.accept(this, argu);
+      return _ret;
    }
 
    /**
@@ -579,8 +510,8 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f4 -> ( ExpressionList() )?
     * f5 -> ")"
     */
-   public String visit(MessageSend n, Map<String, String> argu) {
-      String _ret = null;
+   public String visit(MessageSend n, Map<String,String> argu) {
+      String _ret=null;
       n.f0.accept(this, argu);
       n.f1.accept(this, argu);
       n.f2.accept(this, argu);
@@ -594,8 +525,8 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f0 -> Expression()
     * f1 -> ( ExpressionRest() )*
     */
-   public String visit(ExpressionList n, Map<String, String> argu) {
-      String _ret = null;
+   public String visit(ExpressionList n, Map<String,String> argu) {
+      String _ret=null;
       n.f0.accept(this, argu);
       n.f1.accept(this, argu);
       return _ret;
@@ -605,8 +536,8 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f0 -> ","
     * f1 -> Expression()
     */
-   public String visit(ExpressionRest n, Map<String, String> argu) {
-      String _ret = null;
+   public String visit(ExpressionRest n, Map<String,String> argu) {
+      String _ret=null;
       n.f0.accept(this, argu);
       n.f1.accept(this, argu);
       return _ret;
@@ -614,59 +545,72 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
 
    /**
     * f0 -> IntegerLiteral()
-    * | FloatLiteral()
-    * | TrueLiteral()
-    * | FalseLiteral()
-    * | Identifier()
-    * | ThisExpression()
-    * | AllocationExpression()
-    * | NotExpression()
-    * | BracketExpression()
+    *       | FloatLiteral()
+    *       | TrueLiteral()
+    *       | FalseLiteral()
+    *       | Identifier()
+    *       | ThisExpression()
+    *       | AllocationExpression()
+    *       | NotExpression()
+    *       | BracketExpression()
     */
-   public String visit(PrimaryExpression n, Map<String, String> argu) {
-      return n.f0.accept(this, argu);
+   public String visit(PrimaryExpression n, Map<String,String> argu) {
+      String _ret=null;
+      n.f0.accept(this, argu);
+      return _ret;
    }
 
    /**
     * f0 -> <INTEGER_LITERAL>
     */
-   public String visit(IntegerLiteral n, Map<String, String> argu) {
-      return "int";
+   public String visit(IntegerLiteral n, Map<String,String> argu) {
+      String _ret=null;
+      n.f0.accept(this, argu);
+      return _ret;
    }
 
    /**
     * f0 -> <FLOAT_LITERAL>
     */
-   public String visit(FloatLiteral n, Map<String, String> argu) {
-      return "float";
+   public String visit(FloatLiteral n, Map<String,String> argu) {
+      String _ret=null;
+      n.f0.accept(this, argu);
+      return _ret;
    }
 
    /**
     * f0 -> "true"
     */
-   public String visit(TrueLiteral n, Map<String, String> argu) {
-      return "boolean";
+   public String visit(TrueLiteral n, Map<String,String> argu) {
+      String _ret=null;
+      n.f0.accept(this, argu);
+      return _ret;
    }
 
    /**
     * f0 -> "false"
     */
-   public String visit(FalseLiteral n, Map<String, String> argu) {
-      return "boolean";
+   public String visit(FalseLiteral n, Map<String,String> argu) {
+      String _ret=null;
+      n.f0.accept(this, argu);
+      return _ret;
    }
 
    /**
     * f0 -> <IDENTIFIER>
     */
-   public String visit(Identifier n, Map<String, String> argu) {
+   public String visit(Identifier n, Map<String,String> argu) {
+      // PRIYAM send identifier's name
       return n.f0.tokenImage;
    }
 
    /**
     * f0 -> "this"
     */
-   public String visit(ThisExpression n, Map<String, String> argu) {
-      return currentClass;
+   public String visit(ThisExpression n, Map<String,String> argu) {
+      String _ret=null;
+      n.f0.accept(this, argu);
+      return _ret;
    }
 
    /**
@@ -675,20 +619,21 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f2 -> "("
     * f3 -> ")"
     */
-   public String visit(AllocationExpression n, Map<String, String> argu) {
+   public String visit(AllocationExpression n, Map<String,String> argu) {
+      String _ret=null;
       n.f0.accept(this, argu);
-      String identifier = n.f1.accept(this, argu);
+      n.f1.accept(this, argu);
       n.f2.accept(this, argu);
       n.f3.accept(this, argu);
-      return identifier;
+      return _ret;
    }
 
    /**
     * f0 -> "!"
     * f1 -> Expression()
     */
-   public String visit(NotExpression n, Map<String, String> argu) {
-      String _ret = null;
+   public String visit(NotExpression n, Map<String,String> argu) {
+      String _ret=null;
       n.f0.accept(this, argu);
       n.f1.accept(this, argu);
       return _ret;
@@ -699,20 +644,20 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f1 -> Expression()
     * f2 -> ")"
     */
-   public String visit(BracketExpression n, Map<String, String> argu) {
+   public String visit(BracketExpression n, Map<String,String> argu) {
+      String _ret=null;
       n.f0.accept(this, argu);
-      String expression = n.f1.accept(this, argu);
+      n.f1.accept(this, argu);
       n.f2.accept(this, argu);
-      // PRIYAM -> simply ignore the bracket
-      return expression;
+      return _ret;
    }
 
    /**
     * f0 -> Identifier()
     * f1 -> ( IdentifierRest() )*
     */
-   public String visit(IdentifierList n, Map<String, String> argu) {
-      String _ret = null;
+   public String visit(IdentifierList n, Map<String,String> argu) {
+      String _ret=null;
       n.f0.accept(this, argu);
       n.f1.accept(this, argu);
       return _ret;
@@ -722,8 +667,8 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f0 -> ","
     * f1 -> Identifier()
     */
-   public String visit(IdentifierRest n, Map<String, String> argu) {
-      String _ret = null;
+   public String visit(IdentifierRest n, Map<String,String> argu) {
+      String _ret=null;
       n.f0.accept(this, argu);
       n.f1.accept(this, argu);
       return _ret;

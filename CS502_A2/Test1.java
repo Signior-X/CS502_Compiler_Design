@@ -22,6 +22,10 @@ class A {
         return 0;
     }
 
+    public boolean priyam(int a, int b, int c) {
+        return true;
+    }
+
     public boolean foo(int p) {
         int a;
         boolean c;
