@@ -23,6 +23,7 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
    private String currentClass = "";
    private String currentMethod = "";
    private boolean insideMethod = false;
+   private ArrayList<String> recordingParams;
 
    public TypeCheckVisitor() {
       // MetaData.printMetaData();
@@ -31,6 +32,8 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
       ConditionErrors = 0;
       AssignmentErrors = 0;
       FunctionErrors = 0;
+
+      recordingParams = new ArrayList<String>();
    }
 
    private String getType(String value) {
@@ -41,16 +44,64 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
       return MetaData.getVarType(currentClass, currentMethod, value);
    }
 
+   private ArrayList<String> getParents(String key) {
+      ArrayList<String> parents = new ArrayList<>();
+
+      String curr = key;
+      while (MetaData.inheritanceGraph.containsKey(curr)) {
+         String parent = MetaData.inheritanceGraph.get(curr);
+         parents.add(parent);
+         curr = parent;
+      }
+
+      return parents;
+   }
+
+   /**
+    * Checks if valid type conversion possible
+    * @param from - (child)
+    * @param to - (parent)
+    * @return true if possible
+    */
+   private boolean isValidTypeCast(String from, String to) {
+      from = getType(from);
+      to = getType(to);
+
+      // System.out.println(" AFTER: " + from + " : " + "->" + " : " + to);
+
+      if (from == to) {
+         return true;
+      }
+
+      // we need to check if lhs can take rhs into it
+      if (to == "float" && from == "int") {
+         return true;
+      }
+
+      // Inheritance check
+      // lhs can be parent of rhs
+      ArrayList<String> parents = getParents(from);
+      // System.out.println(parents);
+      if (parents.contains(to)) {
+         // PRIIYAM - Inheritance part done
+         return true;
+      }
+
+      return false;
+   }
+
    /**
     * Check if valid binary operation and if yes
     * return the correct type
     */
    private String BinOpsCheck(String type1, String type2, String operand) {
-      System.out.println("BINARY OPS");
-      System.out.println("  BEFORE: " + type1 + " : " + operand + " : " + type2);
+      // System.out.println("BINARY OPS");
+      // System.out.println(" BEFORE: " + type1 + " : " + operand + " : " + type2);
 
       type1 = getType(type1);
       type2 = getType(type2);
+
+      // System.out.println(" AFTER: " + type1 + " : " + operand + " : " + type2);
 
       if (operand == "+" || operand == "-"
             || operand == "*" || operand == "/") {
@@ -62,38 +113,107 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
             return "float";
          } else if (type1 == "int" && type2 == "int") {
             return "int";
-         } else {
-            System.out.println("    ERROR: " + type1 + " : " + operand + " : " + type2);
-
-            BinOpsErrors++;
-            return null;
          }
       }
 
-      System.out.println("  AFTER: " + type1 + " : " + operand + " : " + type2);
+      if (operand == "&&" || operand == "||" || operand == "") {
+         if (type1 == "boolean" && type2 == "boolean") {
+            return "boolean";
+         }
+      }
 
+      if (operand == "<=") {
+         if ((type1 == "int" || type1 == "float")
+               && (type2 == "int" || type2 == "float")) {
+               return "boolean";
+         }
+      }
+
+      if (operand == "!=") {
+         if (type1 == type2) {
+            return "boolean";
+         }
+      }
+
+      // System.out.println(" ERROR: " + type1 + " : " + operand + " : " + type2);
+      BinOpsErrors++;
       return null;
    }
 
    private void AssignmentOpsCheck(String lhs, String rhs) {
-      System.out.println("ASSIGNMENT OPS");
-      System.out.println("  BEFORE: " + lhs + " : " + "=" + " : " + rhs);
+      // System.out.println("ASSIGNMENT OPS");
+      // System.out.println("  BEFORE: " + lhs + " : " + "=" + " : " + rhs);
 
-      lhs = getType(lhs);
-      rhs = getType(rhs);
-
-      System.out.println("  AFTER: " + lhs + " : " + "=" + " : " + rhs);
-
-      if (lhs == rhs) {
-         return;
-      }
-      
-      // we need to check if lhs can take rhs into it
-      if (lhs == "float" && rhs == "int") {
+      // rhs to lhs type conversion
+      if (isValidTypeCast(rhs, lhs)) {
          return;
       }
 
-      // Inheritance check TODO
+      // System.out.println("  ERROR: " + lhs + " : " + "=" + " : " + rhs);
+      AssignmentErrors++;
+   }
+
+   public String functionCallCheck(String base, String functionName, ArrayList<String> params) {
+      // System.out.println("Function call : " + base + " : " + functionName + " : " + params);
+      if (base == null) {
+         base = currentClass;
+      }
+
+      base = getType(base);
+
+      if (base == null) {
+         // Variable does not exist, may not have defined
+         FunctionErrors++;
+         return null;
+      }
+
+      ArrayList<String> requiredParams = new ArrayList<String>();
+      boolean funExists = false;
+      String realBase = base;
+      if (MetaData.functionMetadata.get(base).containsKey(functionName)) {
+         // Function name exists in this scope
+         funExists = true;
+         requiredParams = MetaData.functionMetadata.get(base).get(functionName).parameters;
+      } else {
+         // try finding in one of the parents
+         ArrayList<String> parents = getParents(base);
+         for(int i = 0; i < parents.size(); i++) {
+            if (MetaData.functionMetadata.get(parents.get(i)).containsKey(functionName)) {
+               // We found a parent with this function name
+               funExists = true;
+               realBase = parents.get(i);
+               requiredParams = MetaData.functionMetadata.get(parents.get(i)).get(functionName).parameters;
+            }
+         }
+      }
+
+      if (funExists) {
+         // System.out.println("Function Params : " + String.valueOf(requiredParams));
+         boolean validFunctionCall = true;
+
+         if (requiredParams.size() == params.size()) {
+            int n = params.size();
+
+            for (int i = 0; i < n; i++) {
+               if (isValidTypeCast(params.get(i), requiredParams.get(i))) {
+                  continue;
+               } else {
+                  validFunctionCall = false;
+                  break;
+               }
+            }
+         } else {
+            validFunctionCall = false;
+         }
+
+         if (validFunctionCall) {
+            return MetaData.functionMetadata.get(realBase).get(functionName).returnType;
+         }   
+      }
+
+      // System.out.println("ERROR : FUNCTION CALL: " + base + " : " + functionName + " : " + params);
+      FunctionErrors++;
+      return null;
    }
 
    /**
@@ -251,7 +371,18 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
       n.f7.accept(this, argu);
       n.f8.accept(this, argu);
       n.f9.accept(this, argu);
-      n.f10.accept(this, argu);
+
+      // PRIYAM - Return type check here
+      String dynamicReturnType = n.f10.accept(this, argu);
+      dynamicReturnType = getType(dynamicReturnType);
+      String staticReturnType = MetaData.functionMetadata.get(currentClass).get(currentMethod).returnType;
+
+      if (!isValidTypeCast(dynamicReturnType, staticReturnType)) {
+         // PRIYAM - Return type problem
+         // System.out.println("ERROR : Return type invalid for function : " + currentMethod);
+         FunctionErrors++;
+      }
+
       n.f11.accept(this, argu);
       n.f12.accept(this, argu);
       currentMethod = "";
@@ -394,7 +525,12 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
       String _ret = null;
       n.f0.accept(this, argu);
       n.f1.accept(this, argu);
-      n.f2.accept(this, argu);
+      String condType = n.f2.accept(this, argu);
+      // System.out.println("CONDTYPE : " + condType);
+      if (condType != "boolean") {
+         ConditionErrors++;
+      }
+
       n.f3.accept(this, argu);
       n.f4.accept(this, argu);
       return _ret;
@@ -413,7 +549,12 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
       String _ret = null;
       n.f0.accept(this, argu);
       n.f1.accept(this, argu);
-      n.f2.accept(this, argu);
+      String condType = n.f2.accept(this, argu);
+      // System.out.println("CONDTYPE : " + condType);
+      if (condType != "boolean") {
+         ConditionErrors++;
+      }
+
       n.f3.accept(this, argu);
       n.f4.accept(this, argu);
       n.f5.accept(this, argu);
@@ -432,7 +573,12 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
       String _ret = null;
       n.f0.accept(this, argu);
       n.f1.accept(this, argu);
-      n.f2.accept(this, argu);
+      String condType = n.f2.accept(this, argu);
+      // System.out.println("CONDTYPE : " + condType);
+      if (condType != "boolean") {
+         ConditionErrors++;
+      }
+
       n.f3.accept(this, argu);
       n.f4.accept(this, argu);
       return _ret;
@@ -477,11 +623,10 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f2 -> PrimaryExpression()
     */
    public String visit(AndExpression n, Map<String, String> argu) {
-      String _ret = null;
-      n.f0.accept(this, argu);
+      String type1 = n.f0.accept(this, argu);
       n.f1.accept(this, argu);
-      n.f2.accept(this, argu);
-      return _ret;
+      String type2 = n.f2.accept(this, argu);
+      return BinOpsCheck(type1, type2, "&&");
    }
 
    /**
@@ -490,11 +635,10 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f2 -> PrimaryExpression()
     */
    public String visit(OrExpression n, Map<String, String> argu) {
-      String _ret = null;
-      n.f0.accept(this, argu);
+      String type1 = n.f0.accept(this, argu);
       n.f1.accept(this, argu);
-      n.f2.accept(this, argu);
-      return _ret;
+      String type2 = n.f2.accept(this, argu);
+      return BinOpsCheck(type1, type2, "||");
    }
 
    /**
@@ -503,11 +647,10 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f2 -> PrimaryExpression()
     */
    public String visit(CompareExpression n, Map<String, String> argu) {
-      String _ret = null;
-      n.f0.accept(this, argu);
+      String type1 = n.f0.accept(this, argu);
       n.f1.accept(this, argu);
-      n.f2.accept(this, argu);
-      return _ret;
+      String type2 = n.f2.accept(this, argu);
+      return BinOpsCheck(type1, type2, "<=");
    }
 
    /**
@@ -516,11 +659,10 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f2 -> PrimaryExpression()
     */
    public String visit(neqExpression n, Map<String, String> argu) {
-      String _ret = null;
-      n.f0.accept(this, argu);
+      String type1 = n.f0.accept(this, argu);
       n.f1.accept(this, argu);
-      n.f2.accept(this, argu);
-      return _ret;
+      String type2 = n.f2.accept(this, argu);
+      return BinOpsCheck(type1, type2, "!=");
    }
 
    /**
@@ -581,13 +723,19 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     */
    public String visit(MessageSend n, Map<String, String> argu) {
       String _ret = null;
-      n.f0.accept(this, argu);
+      // PRIYAM - Function calls
+      // First we will check if a valid function call and that function exists or not
+
+      String base = n.f0.accept(this, argu);
       n.f1.accept(this, argu);
-      n.f2.accept(this, argu);
+      String functionName = n.f2.accept(this, argu);
+
       n.f3.accept(this, argu);
+      recordingParams.clear();
+
       n.f4.accept(this, argu);
       n.f5.accept(this, argu);
-      return _ret;
+      return functionCallCheck(base, functionName, recordingParams);
    }
 
    /**
@@ -596,7 +744,9 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     */
    public String visit(ExpressionList n, Map<String, String> argu) {
       String _ret = null;
-      n.f0.accept(this, argu);
+      String firstArgument = n.f0.accept(this, argu);
+      recordingParams.add(firstArgument);
+
       n.f1.accept(this, argu);
       return _ret;
    }
@@ -606,10 +756,11 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f1 -> Expression()
     */
    public String visit(ExpressionRest n, Map<String, String> argu) {
-      String _ret = null;
       n.f0.accept(this, argu);
-      n.f1.accept(this, argu);
-      return _ret;
+      String argument = n.f1.accept(this, argu);
+      recordingParams.add(argument);
+
+      return argument;
    }
 
    /**

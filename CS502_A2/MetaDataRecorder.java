@@ -148,6 +148,10 @@ public class MetaDataRecorder extends GJDepthFirst<String,Map<String,String>> {
       String _ret=null;
       String type = n.f0.accept(this, argu);
       String var = n.f1.accept(this, argu);
+
+      // TODO - Can undefined types be present or not??
+      // MetaData.typeList.add(type);
+
       MetaData.addVariable(currentClass, currentMethod, var, type);
       n.f2.accept(this, argu);
       return _ret;
