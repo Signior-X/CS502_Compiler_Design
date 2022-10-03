@@ -70,6 +70,10 @@ public class Metadata {
         classes.get(className).fields.add(new Variable(var, type));
     }
 
+    public static void addAllField(String className, String var, String type) {
+        classes.get(className).allFields.add(new Variable(var, type));
+    }
+
     /**
      * @return If the variable name is in parameters list or not
      */
@@ -105,14 +109,16 @@ public class Metadata {
 
         // i = 0 for "this" (NOT SURE)
         // TODO should reverse loop as more close filed needs to be find
-        int i = 1;
-        for (Variable field : classes.get(className).fields) {
-            if (field.name == varName) {
+        ArrayList<Variable> allFieldsList = classes.get(className).allFields;
+
+        int i = allFieldsList.size() - 1;
+        while(i >= 0) {
+            if (allFieldsList.get(i).name == varName) {
                 // System.out.println("ClassName: " + className + " , " + "MethodName: " + methodName + " , " + "VAR: " + varName);
 
-                return i * 4;
+                return (i + 1) * 4;
             }
-            i++;
+            i--;
         }
 
         return -1;
@@ -132,17 +138,29 @@ public class Metadata {
 
 class ClassMetadata {
     public ArrayList<Variable> fields;
+    public ArrayList<Variable> allFields;
 
     // Stores only the method name, a reference for the method
     public ArrayList<String> methods;
 
+    // all methods, stores the key classmethod Pair
+    public ArrayList<String> allMethods;
+
+    // The mapping of the function name with latest function name
+    public Map<String, String> methodsMapping;
+
     public ClassMetadata() {
         fields = new ArrayList<Variable>();
+        allFields = new ArrayList<Variable>();
         methods = new ArrayList<String>();
+        allMethods = new ArrayList<String>();
+        methodsMapping = new HashMap<String, String>();
     }
 
     public String toString() {
-        return " Methods: " + methods.toString() + " \n Fields: " + fields.toString() +"\n";
+        return " Methods: " + methods.toString() + " \n Fields: " + fields.toString() +"\n"
+        + "All Fields: " + allFields.toString() + "\n AllMethods: " + allMethods.toString() + "\n"
+        + "MethodsMapping: " + methodsMapping.toString() + "\n\n";
     }
 }
 

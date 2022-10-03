@@ -20,6 +20,7 @@ public class FinalCode implements GJNoArguVisitor<String> {
    private String methodTemps = "";
    private String methodBody = "";
    private Map<String, String> varReplacement;
+   private boolean functionCallExists = false;
 
    FinalCode() {
       thisClass = "";
@@ -60,6 +61,12 @@ public class FinalCode implements GJNoArguVisitor<String> {
    }
 
    private void methodEnds() {
+      if (functionCallExists) {
+         methodTemps += "    Object vTablePtr;\n";
+         methodTemps += "    String fnName;\n";
+      }
+
+      functionCallExists = false;
       finalCode += methodTemps + "\n";
       finalCode += methodBody + "\n";
       methodTemps = "";
@@ -101,6 +108,37 @@ public class FinalCode implements GJNoArguVisitor<String> {
 
       addToMethodCode("store(mthis, " + vrTableValue + ", " + value + ");", 4);
       return true;
+   }
+
+   private int getFieldsSize(String varType) {
+      return (Metadata.classes.get(varType).allFields.size() + 1);
+   }
+
+   private void HandleCreateObjectType(String varType, String varName) {
+      String temp1 = getNextTempVar();
+      String temp2 = getNextTempVar();
+
+      // Storing the fields
+      int fieldsSize = getFieldsSize(varType);
+      addToMethodCode(temp1 + " = alloc(" + (fieldsSize * 4) + ");", 4);
+      for (int i = 1; i < fieldsSize; i++) {
+         addToMethodCode("store(" + temp1 + ", " + (i * 4) + ", 0);", 4);
+      }
+      addToMethodCode("", 0);
+
+      // storing the functions
+      int methodsSize = Metadata.classes.get(varType).allMethods.size();
+      addToMethodCode(temp2 + " = alloc(" + (methodsSize * 4) + ");", 4);
+      for (int i = 0; i < methodsSize; i++) {
+         String methodName = Metadata.classes.get(varType).allMethods.get(i);
+         String methodKey = Metadata.classes.get(varType).methodsMapping.get(methodName);
+         addToMethodCode("store(" + temp2 + ", " + (i * 4) + ", " + methodKey + ");", 4);
+      }
+      addToMethodCode("", 0);
+
+      addToMethodCode("store(" + temp1 + ", " + temp2 + ");", 4);
+      addToMethodCode(varName + " = " + temp1, 4);
+      addToMethodCode("", 4);
    }
 
    //
@@ -304,7 +342,15 @@ public class FinalCode implements GJNoArguVisitor<String> {
       String _ret=null;
       String varType = n.f0.accept(this);
       String varName = n.f1.accept(this);
-      methodTemps += "    " + varType + " " + varName + ";\n";
+
+      if (varType == "int" || varType == "boolean" || varType == "String") {
+         methodTemps += "    " + varType + " " + varName + ";\n";
+      } else {
+         // we need to handle the object creation here
+         HandleCreateObjectType(varType, varName);
+      }
+
+      
       n.f2.accept(this);
       return _ret;
    }
@@ -475,7 +521,7 @@ public class FinalCode implements GJNoArguVisitor<String> {
 
       if (!StoreStatement(identifier, expr)) {
          // Not a store statement, so simple assignment
-         addToMethodCode(identifier + " = " + expr, 4);
+         addToMethodCode(identifier + " = " + expr + ";", 4);
       }
       n.f3.accept(this);
       return _ret;
@@ -490,6 +536,7 @@ public class FinalCode implements GJNoArguVisitor<String> {
     * f5 -> ";"
     */
    public String visit(FieldAssignmentStatement n) {
+      // TODO - Store statement of some kind
       String _ret=null;
       n.f0.accept(this);
       n.f1.accept(this);
@@ -692,13 +739,23 @@ public class FinalCode implements GJNoArguVisitor<String> {
     */
    public String visit(MessageSend n) {
       String _ret=null;
-      n.f0.accept(this);
+      String fBase = n.f0.accept(this);
       n.f1.accept(this);
-      n.f2.accept(this);
+      String fName = n.f2.accept(this);
       n.f3.accept(this);
       n.f4.accept(this);
       n.f5.accept(this);
-      return _ret;
+
+      functionCallExists = true;
+      addToMethodCode("vTablePtr = load(" + fBase + ", 0);", 4);
+
+      // I need to know the type of fBase!!
+      // TODO
+      int functionIndex = 3;
+      addToMethodCode("fnName = (String) load(vTablePtr, " + functionIndex + ");", 4);
+      
+      String params = "";
+      return "(Integer) callFunc(fnName" + params + ")";
    }
 
    /**
@@ -781,9 +838,8 @@ public class FinalCode implements GJNoArguVisitor<String> {
     * f0 -> "this"
     */
    public String visit(ThisExpression n) {
-      String _ret=null;
       n.f0.accept(this);
-      return _ret;
+      return "this";
    }
 
    /**
@@ -793,12 +849,18 @@ public class FinalCode implements GJNoArguVisitor<String> {
     * f3 -> ")"
     */
    public String visit(AllocationExpression n) {
+      // PRIYAM - TODO, find if the object is of which type?
+      // Dynamic type!
+
+      // Also instead of doing Object allocation using
+      // static type, do like this
+
       String _ret=null;
       n.f0.accept(this);
-      n.f1.accept(this);
+      String identifier = n.f1.accept(this);
       n.f2.accept(this);
       n.f3.accept(this);
-      return _ret;
+      return "new " + identifier + "()";
    }
 
    /**
@@ -806,10 +868,9 @@ public class FinalCode implements GJNoArguVisitor<String> {
     * f1 -> Identifier()
     */
    public String visit(NotExpression n) {
-      String _ret=null;
       n.f0.accept(this);
-      n.f1.accept(this);
-      return _ret;
+      String identifier = n.f1.accept(this);
+      return "!" + LoadStatement(identifier);
    }
 
 }
