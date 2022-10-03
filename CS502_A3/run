@@ -1,0 +1,6 @@
+#!/bin/bash
+
+# javacc Tchk.jj
+# java -jar jtb132.jar Tchk.jj
+# javacc jtb.out.jj
+javac Main.java && java Main < Test1.java
