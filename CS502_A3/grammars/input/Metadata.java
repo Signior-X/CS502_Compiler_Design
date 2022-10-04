@@ -62,6 +62,21 @@ public class Metadata {
     }
 
     /**
+     * Adds an object to the method body
+     * @param name - object name
+     * @param type - objec type
+     */
+    public static void addObject(String className, String methodName, String name, String type) {
+        String key = getMethodKey(className, methodName);
+        methods.get(key).objects.put(name, type);
+    }
+
+    public static String getObjectType(String className, String methodName, String name) {
+        String key = getMethodKey(className, methodName);
+        return methods.get(key).objects.get(name);
+    }
+
+    /**
      * Adds a field into the classes
      * @param var - Field Name
      * @param type - File type
@@ -124,6 +139,35 @@ public class Metadata {
         return -1;
     }
 
+    /**
+     * Finds the the value store of the class field
+     * ifexists in the function vTable
+     * @param baseType - Class Type of the function base
+     * @param fName - Function Name
+     * @return position of the function (i * 4)
+     */
+    public static int getMethodPoint(String baseType, String fName) {
+        // now using the baseType, find which method is
+        // suitable to call based on fName
+        // String functionKey = Metadata.classes.get(baseType).methodsMapping.get(fName);
+        ArrayList<String> allMethodsList = Metadata.classes.get(baseType).allMethods;
+
+        // System.out.println("Function Key: " + fName);
+        // System.out.println("ALLMethods: " + allMethodsList);
+
+        int i = allMethodsList.size() - 1;
+        while(i >= 0) {
+            if (allMethodsList.get(i) == fName) {
+                // System.out.println("ClassName: " + className + " , " + "MethodName: " + methodName + " , " + "VAR: " + varName);
+
+                return i * 4;
+            }
+            i--;
+        }
+
+        return -1;
+    }
+
     public static void printMetaData() {
         System.out.println("\nGRAPH");
         System.out.println(inheritanceGraph);
@@ -168,19 +212,26 @@ class Method {
     public String name;
     public String returnType;
     public ArrayList<Variable> parameters;
+    
+    // object name, type
+    public Map<String, String> objects;
 
     public Method() {
         parameters = new ArrayList<Variable>();
+        objects = new HashMap<String, String>();
     }
 
     public Method(String name, String returnType) {
         parameters = new ArrayList<Variable>();
+        objects = new HashMap<String, String>();
         this.name = name;
         this.returnType = returnType;
     }
 
     public String toString() {
-        return " MethodName: " + name + "->" + returnType + "\n Parameters=" + parameters.toString() + "\n";
+        return " MethodName: " + name + "->" + returnType
+        + "\n Parameters=" + parameters.toString()
+        + "\n Objects=" + objects.toString() + "\n";
     }
 }
 

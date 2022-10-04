@@ -5,6 +5,7 @@ public class Test1 {
         A a;
         int r;
         a = new A();
+        // b = a ?? how to handle this?
         r = a.m1(10);
         System.out.println(r);
         r = a.m3();

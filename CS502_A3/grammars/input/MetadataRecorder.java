@@ -215,8 +215,9 @@ public class MetadataRecorder implements GJNoArguVisitor<String> {
     */
    public String visit(VarDeclaration n) {
       String _ret=null;
-      n.f0.accept(this);
-      n.f1.accept(this);
+      String type = n.f0.accept(this);
+      String name = n.f1.accept(this);
+      Metadata.addObject(thisClass, thisMethod, name, type);
       n.f2.accept(this);
       return _ret;
    }

@@ -19,8 +19,11 @@ public class FinalCode implements GJNoArguVisitor<String> {
    
    private String methodTemps = "";
    private String methodBody = "";
-   private Map<String, String> varReplacement;
    private boolean functionCallExists = false;
+
+   // For each method, while travering, we need to
+   // have which variable it is pointing to
+   private Map<String, String> varReplacement;
 
    FinalCode() {
       thisClass = "";
@@ -114,7 +117,7 @@ public class FinalCode implements GJNoArguVisitor<String> {
       return (Metadata.classes.get(varType).allFields.size() + 1);
    }
 
-   private void HandleCreateObjectType(String varType, String varName) {
+   private String HandleCreateObjectType(String varType) {
       String temp1 = getNextTempVar();
       String temp2 = getNextTempVar();
 
@@ -137,8 +140,7 @@ public class FinalCode implements GJNoArguVisitor<String> {
       addToMethodCode("", 0);
 
       addToMethodCode("store(" + temp1 + ", " + temp2 + ");", 4);
-      addToMethodCode(varName + " = " + temp1, 4);
-      addToMethodCode("", 4);
+      return temp1;
    }
 
    //
@@ -347,9 +349,8 @@ public class FinalCode implements GJNoArguVisitor<String> {
          methodTemps += "    " + varType + " " + varName + ";\n";
       } else {
          // we need to handle the object creation here
-         HandleCreateObjectType(varType, varName);
+         methodTemps += "    " + "Object" + " " + varName + ";\n";
       }
-
       
       n.f2.accept(this);
       return _ret;
@@ -518,6 +519,14 @@ public class FinalCode implements GJNoArguVisitor<String> {
       String identifier = n.f0.accept(this);
       n.f1.accept(this);
       String expr = n.f2.accept(this);
+
+      // TODO - check if this is needed
+      // if (expr == "mthis") {
+      //    // this pointer variable
+      //    // create a replacement for the variable as
+      //    // mthis
+      //    varReplacement.put(identifier, expr);
+      // }
 
       if (!StoreStatement(identifier, expr)) {
          // Not a store statement, so simple assignment
@@ -750,9 +759,12 @@ public class FinalCode implements GJNoArguVisitor<String> {
       addToMethodCode("vTablePtr = load(" + fBase + ", 0);", 4);
 
       // I need to know the type of fBase!!
-      // TODO
-      int functionIndex = 3;
-      addToMethodCode("fnName = (String) load(vTablePtr, " + functionIndex + ");", 4);
+      String baseType = Metadata.getObjectType(thisClass, thisMethod, fBase);
+      // System.out.println("BASE: " + fBase);
+      // System.out.println(Metadata.methods.get(Metadata.getMethodKey(thisClass, thisMethod)));
+      // System.out.println("BASE Type: " + baseType);
+      int methodPoint = Metadata.getMethodPoint(baseType, fName);
+      addToMethodCode("fnName = (String) load(vTablePtr, " + methodPoint + ");", 4);
       
       String params = "";
       return "(Integer) callFunc(fnName" + params + ")";
@@ -839,7 +851,7 @@ public class FinalCode implements GJNoArguVisitor<String> {
     */
    public String visit(ThisExpression n) {
       n.f0.accept(this);
-      return "this";
+      return "mthis";
    }
 
    /**
@@ -860,7 +872,7 @@ public class FinalCode implements GJNoArguVisitor<String> {
       String identifier = n.f1.accept(this);
       n.f2.accept(this);
       n.f3.accept(this);
-      return "new " + identifier + "()";
+      return HandleCreateObjectType(identifier);
    }
 
    /**
