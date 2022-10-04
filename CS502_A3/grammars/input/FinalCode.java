@@ -25,6 +25,8 @@ public class FinalCode implements GJNoArguVisitor<String> {
    // have which variable it is pointing to
    private Map<String, String> varReplacement;
 
+   private String funArgs = "";
+
    FinalCode() {
       thisClass = "";
       thisMethod = "";
@@ -71,7 +73,7 @@ public class FinalCode implements GJNoArguVisitor<String> {
 
       functionCallExists = false;
       finalCode += methodTemps + "\n";
-      finalCode += methodBody + "\n";
+      finalCode += methodBody;
       methodTemps = "";
       methodBody = "";
       thisMethod = "";
@@ -414,6 +416,7 @@ public class FinalCode implements GJNoArguVisitor<String> {
 
       methodEnds();
       addToFinalCode("}", 2);
+      addToFinalCode("", 0);
       return _ret;
    }
 
@@ -752,10 +755,12 @@ public class FinalCode implements GJNoArguVisitor<String> {
       n.f1.accept(this);
       String fName = n.f2.accept(this);
       n.f3.accept(this);
+      funArgs = "";
       n.f4.accept(this);
       n.f5.accept(this);
 
       functionCallExists = true;
+      addToMethodCode("", 0);
       addToMethodCode("vTablePtr = load(" + fBase + ", 0);", 4);
 
       // I need to know the type of fBase!!
@@ -765,10 +770,7 @@ public class FinalCode implements GJNoArguVisitor<String> {
       // System.out.println("BASE Type: " + baseType);
       int methodPoint = Metadata.getMethodPoint(baseType, fName);
       addToMethodCode("fnName = (String) load(vTablePtr, " + methodPoint + ");", 4);
-      
-      // TODO - create params for function call
-      String params = "";
-      return "(Integer) callFunc(fnName" + params + ")";
+      return "(Integer) callFunc(fnName, " + fBase + funArgs + ")";
    }
 
    /**
@@ -777,7 +779,10 @@ public class FinalCode implements GJNoArguVisitor<String> {
     */
    public String visit(ArgList n) {
       String _ret=null;
-      n.f0.accept(this);
+      String firstArg = n.f0.accept(this);
+      // System.out.println("RPIYAM first args: " + firstArg);
+
+      funArgs += ", " + firstArg;
       n.f1.accept(this);
       return _ret;
    }
@@ -789,7 +794,10 @@ public class FinalCode implements GJNoArguVisitor<String> {
    public String visit(ArgRest n) {
       String _ret=null;
       n.f0.accept(this);
-      n.f1.accept(this);
+      String arg = n.f1.accept(this);
+      // System.out.println("RPIYAM args: " + arg);
+      funArgs += ", " + arg;
+
       return _ret;
    }
 
@@ -864,6 +872,7 @@ public class FinalCode implements GJNoArguVisitor<String> {
    public String visit(AllocationExpression n) {
       // PRIYAM - TODO, find if the object is of which type?
       // Dynamic type!
+      // DO we need?
 
       // Also instead of doing Object allocation using
       // static type, do like this
