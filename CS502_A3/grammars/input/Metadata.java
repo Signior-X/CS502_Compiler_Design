@@ -109,12 +109,35 @@ public class Metadata {
     }
 
     /**
+     * @return If the variable name is redefined in the local scope
+     */
+    public static boolean isLocal(String className, String methodName, String varName) {
+        String key = getMethodKey(className, methodName);
+
+        if (!methods.containsKey(key)) {
+            return false;
+        }
+
+        for (String var : methods.get(key).objects.keySet()) {
+            if (var == varName) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Finds the the value store of the class field
      * ifexists in the fieldsTable
      * @return -2 / -1 / 4k
      */
     public static int isClassField(String className, String methodName, String varName) {
         if (className == "" || methodName == "") {
+            return -3;
+        }
+
+        if (isLocal(className, methodName, varName)) {
             return -2;
         }
 

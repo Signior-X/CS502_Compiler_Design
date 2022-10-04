@@ -33,7 +33,7 @@ public class FinalCode implements GJNoArguVisitor<String> {
       varReplacement = new HashMap<String, String>();
    }
 
-   private String getNextTempVar() {
+   private String getNextTempVar(String type) {
       String key = Metadata.getMethodKey(thisClass, thisMethod);
 
       if (!counters.containsKey(key)) {
@@ -43,7 +43,7 @@ public class FinalCode implements GJNoArguVisitor<String> {
       int counter = counters.get(key);
       counters.put(key, counter + 1);
       String tempName = "priyam_" + counter;
-      methodTemps += "    int " + tempName + ";\n";
+      methodTemps += "    " + type + " " + tempName + ";\n";
       return tempName;
    }
 
@@ -94,7 +94,7 @@ public class FinalCode implements GJNoArguVisitor<String> {
          // just resuse that temp variable name
          tempVar = varReplacement.get(var);
       } else {
-         tempVar = getNextTempVar();
+         tempVar = getNextTempVar("int");
          varReplacement.put(var, tempVar);
       }
 
@@ -118,8 +118,8 @@ public class FinalCode implements GJNoArguVisitor<String> {
    }
 
    private String HandleCreateObjectType(String varType) {
-      String temp1 = getNextTempVar();
-      String temp2 = getNextTempVar();
+      String temp1 = getNextTempVar("Object");
+      String temp2 = getNextTempVar("Object");
 
       // Storing the fields
       int fieldsSize = getFieldsSize(varType);
@@ -135,11 +135,11 @@ public class FinalCode implements GJNoArguVisitor<String> {
       for (int i = 0; i < methodsSize; i++) {
          String methodName = Metadata.classes.get(varType).allMethods.get(i);
          String methodKey = Metadata.classes.get(varType).methodsMapping.get(methodName);
-         addToMethodCode("store(" + temp2 + ", " + (i * 4) + ", " + methodKey + ");", 4);
+         addToMethodCode("store(" + temp2 + ", " + (i * 4) + ", \"" + methodKey + "\");", 4);
       }
       addToMethodCode("", 0);
 
-      addToMethodCode("store(" + temp1 + ", " + temp2 + ");", 4);
+      addToMethodCode("store(" + temp1 + ", 0, " + temp2 + ");", 4);
       return temp1;
    }
 
@@ -263,7 +263,7 @@ public class FinalCode implements GJNoArguVisitor<String> {
 
       thisMethod = "main";
       finalCode += new StringBuilder()
-                     .append("public class " + className + " {\n")
+                     .append("public class " + "Main" + " {\n")
                      .append("  public static void main(String[] " + argName + ") {\n")
                      .toString();
 
@@ -766,6 +766,7 @@ public class FinalCode implements GJNoArguVisitor<String> {
       int methodPoint = Metadata.getMethodPoint(baseType, fName);
       addToMethodCode("fnName = (String) load(vTablePtr, " + methodPoint + ");", 4);
       
+      // TODO - create params for function call
       String params = "";
       return "(Integer) callFunc(fnName" + params + ")";
    }

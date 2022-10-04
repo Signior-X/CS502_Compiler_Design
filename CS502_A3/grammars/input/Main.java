@@ -87,7 +87,7 @@ public class Main {
             makeAllMethods(className, visited);
          }
 
-         Metadata.printMetaData();
+         // Metadata.printMetaData();
          root.accept(new FinalCode());
       }
       catch (ParseException e) {
