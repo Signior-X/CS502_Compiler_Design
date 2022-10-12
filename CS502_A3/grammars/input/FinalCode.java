@@ -24,6 +24,7 @@ public class FinalCode implements GJNoArguVisitor<String> {
    // For each method, while travering, we need to
    // have which variable it is pointing to
    private Map<String, String> varReplacement;
+   private Map<String, String> dynamicTypeOfVar;
 
    private String funArgs = "";
 
@@ -33,6 +34,7 @@ public class FinalCode implements GJNoArguVisitor<String> {
       finalCode = "";
       counters = new HashMap<String, Integer>();
       varReplacement = new HashMap<String, String>();
+      dynamicTypeOfVar = new HashMap<String, String>();
    }
 
    private String getNextTempVar(String type) {
@@ -78,6 +80,31 @@ public class FinalCode implements GJNoArguVisitor<String> {
       methodBody = "";
       thisMethod = "";
       varReplacement.clear();
+      dynamicTypeOfVar.clear();
+   }
+
+   private String LoadForIdentifier(String var, String className) {
+      int vrTableValue = Metadata.isClassField(className, thisMethod, var);
+
+      if (vrTableValue < 0) {
+         return var;
+      }
+
+      // This also implies that thisClass and thisMethod are not null
+      // This implies class variable,
+      // The definition will be created above, so, no worries
+      String tempVar = "";
+      if (varReplacement.containsKey(var)) {
+         // already defined one temp variable for this
+         // just resuse that temp variable name
+         tempVar = varReplacement.get(var);
+      } else {
+         tempVar = getNextTempVar("int");
+         varReplacement.put(var, tempVar);
+      }
+
+      addToMethodCode(tempVar + " = (Integer) load(mthis, " + vrTableValue + ");", 4);
+      return tempVar;
    }
 
    private String LoadStatement(String var) {
@@ -142,6 +169,7 @@ public class FinalCode implements GJNoArguVisitor<String> {
       addToMethodCode("", 0);
 
       addToMethodCode("store(" + temp1 + ", 0, " + temp2 + ");", 4);
+      dynamicTypeOfVar.put(temp1, varType);
       return temp1;
    }
 
@@ -523,6 +551,11 @@ public class FinalCode implements GJNoArguVisitor<String> {
       n.f1.accept(this);
       String expr = n.f2.accept(this);
 
+      if (dynamicTypeOfVar.containsKey(expr)) {
+         // System.out.println("KEY contains" + identifier + expr);
+         dynamicTypeOfVar.put(identifier, dynamicTypeOfVar.get(expr));
+      }
+
       // TODO - check if this is needed
       // if (expr == "mthis") {
       //    // this pointer variable
@@ -549,6 +582,7 @@ public class FinalCode implements GJNoArguVisitor<String> {
     */
    public String visit(FieldAssignmentStatement n) {
       // TODO - Store statement of some kind
+      // p.x = a
       String _ret=null;
       n.f0.accept(this);
       n.f1.accept(this);
@@ -735,10 +769,23 @@ public class FinalCode implements GJNoArguVisitor<String> {
     */
    public String visit(FieldReference n) {
       // TODO - How to hanlde this
+      // a = p.x
+
+      // We need class (dynamic) of p, op1
+      // and if dynamic does not exist, return static
+
       String op1 = n.f0.accept(this);
-      n.f1.accept(this);
+      n.f1.accept(this);      
       String op2 = n.f2.accept(this);
-      return op1 + "." + op2;
+
+      String baseClassName = Metadata.getObjectType(thisClass, thisMethod, op1);
+      // System.out.println("Static type: " + baseClassName);
+      if (dynamicTypeOfVar.containsKey(op1)) {
+         baseClassName = dynamicTypeOfVar.get(op1);
+         // System.out.println("Dyanamic type: " + baseClassName);
+      }
+
+      return LoadForIdentifier(op2, baseClassName);
    }
 
    /**

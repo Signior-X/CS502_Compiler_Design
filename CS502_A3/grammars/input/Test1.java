@@ -4,11 +4,11 @@ public class Test1 {
     public static void main(String[] args) {
         A a;
         int r;
+        int p;
         a = new A();
-        r = a.m1(10);
-        System.out.println(r);
-        r = a.m3();
-        System.out.println(r);
+
+        p = a.x;
+        a.x = p;
     }
 }
 
@@ -19,6 +19,7 @@ class A {
     public int m1(int z) {
         int t1;
         int t2;
+
         t1 = x + y;
         t2 = t1 + z;
         return t2;
@@ -26,12 +27,6 @@ class A {
 
 
     public int m2() {
-        // this.x is not possible
-        // so don't worry
-        // ASK - What about global vars update
-        // from one method
-        // x = 3;
-
         return x;
     }
 
