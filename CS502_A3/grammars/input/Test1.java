@@ -6,9 +6,12 @@ public class Test1 {
         int r;
         int p;
         a = new A();
-
+        r = a.m1(10);
         p = a.x;
         a.x = p;
+        System.out.println(r);
+        r = a.m3();
+        System.out.println(r);
     }
 }
 

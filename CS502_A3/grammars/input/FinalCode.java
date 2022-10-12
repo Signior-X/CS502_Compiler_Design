@@ -37,6 +37,17 @@ public class FinalCode implements GJNoArguVisitor<String> {
       dynamicTypeOfVar = new HashMap<String, String>();
    }
 
+   private String getDynamicObjectType(String var) {
+      String baseClassName = Metadata.getObjectType(thisClass, thisMethod, var);
+      // System.out.println("Static type: " + baseClassName);
+      if (dynamicTypeOfVar.containsKey(var)) {
+         baseClassName = dynamicTypeOfVar.get(var);
+         // System.out.println("Dyanamic type: " + baseClassName);
+      }
+
+      return baseClassName;
+   }
+
    private String getNextTempVar(String type) {
       String key = Metadata.getMethodKey(thisClass, thisMethod);
 
@@ -83,8 +94,10 @@ public class FinalCode implements GJNoArguVisitor<String> {
       dynamicTypeOfVar.clear();
    }
 
-   private String LoadForIdentifier(String var, String className) {
-      int vrTableValue = Metadata.isClassField(className, thisMethod, var);
+   private String LoadForIdentifier(String var, String baseVar) {
+      String baseClassName = getDynamicObjectType(baseVar);
+
+      int vrTableValue = Metadata.isClassField(baseClassName, thisMethod, var);
 
       if (vrTableValue < 0) {
          return var;
@@ -103,7 +116,7 @@ public class FinalCode implements GJNoArguVisitor<String> {
          varReplacement.put(var, tempVar);
       }
 
-      addToMethodCode(tempVar + " = (Integer) load(mthis, " + vrTableValue + ");", 4);
+      addToMethodCode(tempVar + " = (Integer) load(" + baseVar + ", " + vrTableValue + ");", 4);
       return tempVar;
    }
 
@@ -129,6 +142,21 @@ public class FinalCode implements GJNoArguVisitor<String> {
 
       addToMethodCode(tempVar + " = (Integer) load(mthis, " + vrTableValue + ");", 4);
       return tempVar;
+   }
+
+   private boolean StoreForFieldStatements(String baseVar, String var, String value) {
+      // base class - A, var - p, value - x
+      // first find the base Class of base Var
+
+      String baseClass = getDynamicObjectType(baseVar);
+
+      int vrTableValue = Metadata.isClassField(baseClass, thisMethod, var);
+      if (vrTableValue < 0) {
+         return false;
+      }
+
+      addToMethodCode("store(" + baseVar + ", " + vrTableValue + ", " + value + ");", 4);
+      return true;
    }
 
    private boolean StoreStatement(String var, String value) {
@@ -581,15 +609,16 @@ public class FinalCode implements GJNoArguVisitor<String> {
     * f5 -> ";"
     */
    public String visit(FieldAssignmentStatement n) {
-      // TODO - Store statement of some kind
+      // we store the value by using dynamic type
       // p.x = a
       String _ret=null;
-      n.f0.accept(this);
+      String baseVar = n.f0.accept(this);
       n.f1.accept(this);
-      n.f2.accept(this);
+      String var = n.f2.accept(this);
       n.f3.accept(this);
-      n.f4.accept(this);
+      String value = n.f4.accept(this);
       n.f5.accept(this);
+      StoreForFieldStatements(baseVar, var, value);
       return _ret;
    }
 
@@ -603,6 +632,7 @@ public class FinalCode implements GJNoArguVisitor<String> {
     * f6 -> Statement()
     */
    public String visit(IfStatement n) {
+      // TODO - to see
       String _ret=null;
       n.f0.accept(this);
       n.f1.accept(this);
@@ -768,7 +798,6 @@ public class FinalCode implements GJNoArguVisitor<String> {
     * f2 -> Identifier()
     */
    public String visit(FieldReference n) {
-      // TODO - How to hanlde this
       // a = p.x
 
       // We need class (dynamic) of p, op1
@@ -778,14 +807,7 @@ public class FinalCode implements GJNoArguVisitor<String> {
       n.f1.accept(this);      
       String op2 = n.f2.accept(this);
 
-      String baseClassName = Metadata.getObjectType(thisClass, thisMethod, op1);
-      // System.out.println("Static type: " + baseClassName);
-      if (dynamicTypeOfVar.containsKey(op1)) {
-         baseClassName = dynamicTypeOfVar.get(op1);
-         // System.out.println("Dyanamic type: " + baseClassName);
-      }
-
-      return LoadForIdentifier(op2, baseClassName);
+      return LoadForIdentifier(op2, op1);
    }
 
    /**
@@ -811,7 +833,7 @@ public class FinalCode implements GJNoArguVisitor<String> {
       addToMethodCode("vTablePtr = load(" + fBase + ", 0);", 4);
 
       // I need to know the type of fBase!!
-      String baseType = Metadata.getObjectType(thisClass, thisMethod, fBase);
+      String baseType = getDynamicObjectType(fBase);
       // System.out.println("BASE: " + fBase);
       // System.out.println(Metadata.methods.get(Metadata.getMethodKey(thisClass, thisMethod)));
       // System.out.println("BASE Type: " + baseType);
@@ -917,9 +939,8 @@ public class FinalCode implements GJNoArguVisitor<String> {
     * f3 -> ")"
     */
    public String visit(AllocationExpression n) {
-      // PRIYAM - TODO, find if the object is of which type?
       // Dynamic type!
-      // DO we need?
+      // DO we need? - yes
 
       // Also instead of doing Object allocation using
       // static type, do like this

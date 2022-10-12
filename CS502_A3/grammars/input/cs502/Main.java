@@ -9,6 +9,9 @@ public class Main {
     int p;
     Object priyam_0;
     Object priyam_1;
+    int priyam_2;
+    Object vTablePtr;
+    String fnName;
 
     priyam_0 = alloc(12);
     store(priyam_0, 4, 0);
@@ -22,7 +25,19 @@ public class Main {
 
     store(priyam_0, 0, priyam_1);
     a = priyam_0;
-    p = a.x;
+
+    vTablePtr = load(a, 0);
+    fnName = (String) load(vTablePtr, 0);
+    r = (Integer) callFunc(fnName, a, 10);
+    priyam_2 = (Integer) load(a, 4);
+    p = priyam_2;
+    store(a, 4, p);
+    System.out.println(r);
+
+    vTablePtr = load(a, 0);
+    fnName = (String) load(vTablePtr, 8);
+    r = (Integer) callFunc(fnName, a);
+    System.out.println(r);
   }
   public static int A__m1(Object mthis, int z) {
     int t1;
