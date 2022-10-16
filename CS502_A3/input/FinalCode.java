@@ -38,7 +38,7 @@ public class FinalCode implements GJNoArguVisitor<String> {
    }
 
    private String getStaticObjectType(String var) {
-      String baseClassName = Metadata.getObjectType(thisClass, thisMethod, var);
+      String baseClassName = Metadata.getObjectType(thisClass, thisMethod, var);      
       return baseClassName;
    }
 
@@ -102,7 +102,10 @@ public class FinalCode implements GJNoArguVisitor<String> {
    private String LoadForIdentifier(String var, String baseVar) {
       String baseClassName = getStaticObjectType(baseVar);
 
-      int vrTableValue = Metadata.isClassField(baseClassName, thisMethod, var);
+      // System.out.println("BAE CLASS NAME: " + baseClassName);
+      int vrTableValue = 0;
+
+      vrTableValue = Metadata.isClassField(baseClassName, thisMethod, var);
 
       if (vrTableValue < 0) {
          return var;
@@ -460,8 +463,16 @@ public class FinalCode implements GJNoArguVisitor<String> {
       n.f6.accept(this);
 
       String paramsString = "";
+
       for (Variable var : Metadata.methods.get(Metadata.getMethodKey(thisClass, thisMethod)).parameters) {
-         paramsString += ", " + var.type + " " + var.name;
+         String varType = var.type;
+         if (varType.equals("boolean") || varType.equals("int") || varType.equals("float") || varType.equals("String")
+         || varType.equals("String[]")) {
+         } else {
+            varType = "Object";
+         }
+
+         paramsString += ", " + varType + " " + var.name;
       }
 
       addToFinalCode("public static int " + Metadata.getMethodKey(thisClass, methodName) + "(Object mthis" + paramsString + ") {", 2);

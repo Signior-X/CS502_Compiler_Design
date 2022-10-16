@@ -73,7 +73,20 @@ public class Metadata {
 
     public static String getObjectType(String className, String methodName, String name) {
         String key = getMethodKey(className, methodName);
-        return methods.get(key).objects.get(name);
+        String ans = methods.get(key).objects.get(name);
+
+        // If not defined statically inside the function block
+        // check the parameters of the method parameters
+        if (ans == null) {
+            ArrayList<Variable> paramsList = methods.get(key).parameters;
+            for (Variable v : paramsList) {
+                if (v.name == name) {
+                    return v.type;
+                }
+            }
+        }
+
+        return ans;
     }
 
     /**
@@ -133,7 +146,7 @@ public class Metadata {
      * @return -2 / -1 / 4k
      */
     public static int isClassField(String className, String methodName, String varName) {
-        if (className == "" || methodName == "") {
+        if (className == "" || methodName == "" || className == null || methodName == null) {
             return -3;
         }
 

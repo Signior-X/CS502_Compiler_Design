@@ -4,135 +4,79 @@ import static cs502.memmgr.MemMgr.*;
 
 public class Main {
   public static void main(String[] args) {
-    Object x1;
-    Object x2;
-    Object x3;
-    int o;
+    Object obj;
+    int ans;
     int t1;
-    int t2;
-    int t3;
+    String var;
     Object priyam_0;
     Object priyam_1;
-    Object priyam_2;
-    Object priyam_3;
-    Object priyam_4;
-    Object priyam_5;
-    int priyam_6;
+    int priyam_2;
     Object vTablePtr;
     String fnName;
 
-    t1 = 4;
-    t2 = 5;
-    t3 = 6;
     priyam_0 = alloc(12);
     store(priyam_0, 4, 0);
     store(priyam_0, 8, 0);
 
-    priyam_1 = alloc(8);
-    store(priyam_1, 0, "B__set");
-    store(priyam_1, 4, "B__get");
+    priyam_1 = alloc(16);
+    store(priyam_1, 0, "A__foo");
+    store(priyam_1, 4, "A__bar");
+    store(priyam_1, 8, "A__baz");
+    store(priyam_1, 12, "A__priyam");
 
     store(priyam_0, 0, priyam_1);
-    x1 = priyam_0;
-    priyam_2 = alloc(16);
-    store(priyam_2, 4, 0);
-    store(priyam_2, 8, 0);
-    store(priyam_2, 12, 0);
+    obj = priyam_0;
+    t1 = 3;
+    var = null;
 
-    priyam_3 = alloc(8);
-    store(priyam_3, 0, "C__set");
-    store(priyam_3, 4, "C__get");
-
-    store(priyam_2, 0, priyam_3);
-    x2 = priyam_2;
-    priyam_4 = alloc(16);
-    store(priyam_4, 4, 0);
-    store(priyam_4, 8, 0);
-    store(priyam_4, 12, 0);
-
-    priyam_5 = alloc(8);
-    store(priyam_5, 0, "C__set");
-    store(priyam_5, 4, "C__get");
-
-    store(priyam_4, 0, priyam_5);
-    x3 = priyam_4;
-    store(x1, 4, t1);
-    store(x2, 4, t2);
-    store(x3, 8, t3);
-
-    vTablePtr = load(x1, 0);
+    vTablePtr = load(obj, 0);
     fnName = (String) load(vTablePtr, 0);
-    o = (Integer) callFunc(fnName, x1, 1);
+    ans = (Integer) callFunc(fnName, obj);
+    System.out.println(ans);
+    store(obj, 4, t1);
+    priyam_2 = (Integer) load(obj, 4);
+    ans = priyam_2;
+    System.out.println(ans);
 
-    vTablePtr = load(x2, 0);
-    fnName = (String) load(vTablePtr, 0);
-    o = (Integer) callFunc(fnName, x2, 2);
+    vTablePtr = load(obj, 0);
+    fnName = (String) load(vTablePtr, 8);
+    ans = (Integer) callFunc(fnName, obj, 8);
+    System.out.println(ans);
+    t1 = 5;
+    store(obj, 8, t1);
 
-    vTablePtr = load(x3, 0);
-    fnName = (String) load(vTablePtr, 0);
-    o = (Integer) callFunc(fnName, x3, 3);
-    priyam_6 = (Integer) load(x1, 4);
-    o = priyam_6;
-    System.out.println(o);
-    priyam_6 = (Integer) load(x2, 4);
-    o = priyam_6;
-    System.out.println(o);
-    priyam_6 = (Integer) load(x3, 8);
-    o = priyam_6;
-    System.out.println(o);
-
-    vTablePtr = load(x1, 0);
-    fnName = (String) load(vTablePtr, 4);
-    o = (Integer) callFunc(fnName, x1);
-    System.out.println(o);
-
-    vTablePtr = load(x2, 0);
-    fnName = (String) load(vTablePtr, 4);
-    o = (Integer) callFunc(fnName, x2);
-    System.out.println(o);
-
-    vTablePtr = load(x3, 0);
-    fnName = (String) load(vTablePtr, 4);
-    o = (Integer) callFunc(fnName, x3);
-    System.out.println(o);
+    vTablePtr = load(obj, 0);
+    fnName = (String) load(vTablePtr, 12);
+    ans = (Integer) callFunc(fnName, obj, obj, var);
+    System.out.println(ans);
   }
-  public static int A__set(Object mthis, int x) {
+  public static int A__foo(Object mthis) {
+    int x;
 
-    store(mthis, 4, x);
-    return 1;
+    x = 5;
+    return x;
   }
 
-  public static int A__get(Object mthis) {
+  public static int A__bar(Object mthis) {
     int priyam_0;
 
     priyam_0 = (Integer) load(mthis, 4);
     return priyam_0;
   }
 
-  public static int B__set(Object mthis, int x) {
+  public static int A__baz(Object mthis, int x) {
 
-    store(mthis, 8, x);
-    return 1;
+    return x;
   }
 
-  public static int B__get(Object mthis) {
+  public static int A__priyam(Object mthis, Object obj, String x) {
+    int ans;
     int priyam_0;
 
-    priyam_0 = (Integer) load(mthis, 8);
-    return priyam_0;
-  }
-
-  public static int C__set(Object mthis, int x) {
-
-    store(mthis, 12, x);
-    return 1;
-  }
-
-  public static int C__get(Object mthis) {
-    int priyam_0;
-
-    priyam_0 = (Integer) load(mthis, 12);
-    return priyam_0;
+    priyam_0 = (Integer) load(obj, 8);
+    ans = priyam_0;
+    System.out.println(x);
+    return ans;
   }
 
 }
