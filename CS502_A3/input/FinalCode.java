@@ -37,6 +37,11 @@ public class FinalCode implements GJNoArguVisitor<String> {
       dynamicTypeOfVar = new HashMap<String, String>();
    }
 
+   private String getStaticObjectType(String var) {
+      String baseClassName = Metadata.getObjectType(thisClass, thisMethod, var);
+      return baseClassName;
+   }
+
    private String getDynamicObjectType(String var) {
       String baseClassName = Metadata.getObjectType(thisClass, thisMethod, var);
       // System.out.println("Static type: " + baseClassName);
@@ -95,7 +100,7 @@ public class FinalCode implements GJNoArguVisitor<String> {
    }
 
    private String LoadForIdentifier(String var, String baseVar) {
-      String baseClassName = getDynamicObjectType(baseVar);
+      String baseClassName = getStaticObjectType(baseVar);
 
       int vrTableValue = Metadata.isClassField(baseClassName, thisMethod, var);
 
@@ -148,7 +153,7 @@ public class FinalCode implements GJNoArguVisitor<String> {
       // base class - A, var - p, value - x
       // first find the base Class of base Var
 
-      String baseClass = getDynamicObjectType(baseVar);
+      String baseClass = getStaticObjectType(baseVar);
 
       int vrTableValue = Metadata.isClassField(baseClass, thisMethod, var);
       if (vrTableValue < 0) {
@@ -632,15 +637,23 @@ public class FinalCode implements GJNoArguVisitor<String> {
     * f6 -> Statement()
     */
    public String visit(IfStatement n) {
-      // TODO - to see
+      // We just add in the method code and
+      // block will automatically be created
       String _ret=null;
       n.f0.accept(this);
       n.f1.accept(this);
-      n.f2.accept(this);
+      String iden = n.f2.accept(this);
       n.f3.accept(this);
+
+      addToMethodCode("if (" + iden + ") {", 4);
       n.f4.accept(this);
+      addToMethodCode("}", 4);
+
       n.f5.accept(this);
+
+      addToMethodCode("else {", 4);
       n.f6.accept(this);
+      addToMethodCode("}", 4);
       return _ret;
    }
 
@@ -655,9 +668,13 @@ public class FinalCode implements GJNoArguVisitor<String> {
       String _ret=null;
       n.f0.accept(this);
       n.f1.accept(this);
-      n.f2.accept(this);
+      String iden = n.f2.accept(this);
       n.f3.accept(this);
+
+      addToMethodCode("while (" + iden + ") {", 4);
       n.f4.accept(this);
+      addToMethodCode("}", 4);
+
       return _ret;
    }
 
@@ -833,6 +850,7 @@ public class FinalCode implements GJNoArguVisitor<String> {
       addToMethodCode("vTablePtr = load(" + fBase + ", 0);", 4);
 
       // I need to know the type of fBase!!
+      // Functions are dynamically called
       String baseType = getDynamicObjectType(fBase);
       // System.out.println("BASE: " + fBase);
       // System.out.println(Metadata.methods.get(Metadata.getMethodKey(thisClass, thisMethod)));

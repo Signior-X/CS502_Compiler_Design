@@ -1,15 +1,17 @@
-package cs502;
+// package cs502;
 
-public class Test {
+public class Test1 {
     public static void main(String[] args) {
         B b;
         int r;
+        int s;
 
         b = new B();
 
         r = b.set(20, 30);
 
-        r = b.m1(10);
+        // r = b.m1(10);
+        s = b.m1(6);
         System.out.println(r);
     }
 }
@@ -26,7 +28,6 @@ class A {
         t2 = t1 + z;
         return t2;
     }
-
 
     public int m2() {
         return x;
