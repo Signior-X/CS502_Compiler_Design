@@ -230,8 +230,23 @@ public class LiveVariableAnalyser implements GJNoArguVisitor<String> {
    }
 
    private void doLiveVariableAnalysisMethod(CFGNode startNode, CFGNode endingNode, DotPrintVisitor vObj) {
+      boolean changed = true;
+      for (int iter = 0; changed; iter++) {
+         changed = analyseMethod(startNode, endingNode, vObj, iter);
+         // System.out.println(Metadata.liveAnalysis);
+      }
+
+      System.out.println("IDFA for live variable analysis for method done: " + startNode);
+      // Metadata.printData();
+   }
+
+   private boolean analyseMethod(CFGNode startNode, CFGNode endingNode, DotPrintVisitor vObj, int iter) {
       // we do live variable analsysi now
+      // System.out.println("Analysing method: " + startNode + " iter: " + iter);
+
       Queue<CFGNode> workList = new LinkedList<>();
+      Set<CFGNode> processed = new HashSet<CFGNode>();
+      boolean globalChanged = false;
 
       // We will try to do IDFA here
       List<CFGNode> currentNodes = endingNode.getPredecessorNodes();
@@ -243,6 +258,7 @@ public class LiveVariableAnalyser implements GJNoArguVisitor<String> {
 
       while (workList.size() > 0) {
          CFGNode currentNode = workList.peek();
+         processed.add(currentNode);
          if (currentNode.getNode() == null) {
             workList.remove();
             continue;
@@ -256,12 +272,12 @@ public class LiveVariableAnalyser implements GJNoArguVisitor<String> {
          Set<String> currentInSet = Metadata.liveAnalysis.get(startNode).get(stmt).inSet;
          changed = changed | union(startNode, currentInSet, succs, vObj); // 1. Union operation
 
-         System.out.println("CURRENT INSET: " + currentInSet);
+         // System.out.println("CURRENT INSET: " + currentInSet);
 
          // We make a copy here, so that changes do not get propagated to out
          Set<String> newSet = new TreeSet<String>(currentInSet);
          // 2. Now take the current statements data, and add or remove
-         System.out.println("PRIYAM stmt: " + stmt);
+         // System.out.println("PRIYAM stmt: " + stmt);
          StatementData thisStatementData = Metadata.statementsData.get(stmt);
          // System.out.println("PRIYAM stmts data; " + Metadata.statementsData);
          // System.out.println("PRIYAM stmt data: " + thisStatementData);
@@ -273,24 +289,29 @@ public class LiveVariableAnalyser implements GJNoArguVisitor<String> {
             newSet.add(rhs);
          }
 
-         System.out.println("NEW SET: " + newSet);
+         // System.out.println("NEW SET: " + newSet);
 
-         changed = changed | hasSetChanged(currentInSet, newSet);
          Metadata.liveAnalysis.get(startNode).get(stmt).outSet = newSet;
-         System.out.println("HAS set changed: " + changed);
+         // System.out.println("HAS set changed: " + changed);
 
-         // TODO - Handle recursion with IDFA
-         // if (changed) {
-            // The result has changed, propagate it to the predecessors also
-            List<CFGNode> preds = currentNode.getPredecessorNodes();
-            for (CFGNode pred : preds) {
+         List<CFGNode> preds = currentNode.getPredecessorNodes();
+         for (CFGNode pred : preds) {
+            if (!processed.contains(pred)) {
                workList.add(pred);
             }
+         }
+
+         // Check if the result has changed, so that you can propagate it
+         // if (changed) {
+         //    System.out.println("PRIYAM changed stmt: " + stmt);
          // }
+         globalChanged = globalChanged | changed;
 
          // Get the current inSet of the statement
          workList.remove();
       }
+
+      return globalChanged; // true if changed
    }
 
    private boolean union(CFGNode startNode, Set<String> original, List<CFGNode> cfgNodes, DotPrintVisitor vObj) {
