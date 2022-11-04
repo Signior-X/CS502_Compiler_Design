@@ -32,7 +32,10 @@ public class Main {
          root.accept(analyser);
 
          // Now we have the lhs and rhs of each statement
-         Metadata.printData();
+         // Metadata.printData();
+         CFGVisitor cfgVisitorAnswer = new CFGVisitor(true);
+         root.accept(cfgVisitorAnswer, null);
+
       } catch (ParseException e) {
          System.out.println(e.toString());
       }

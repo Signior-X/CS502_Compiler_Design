@@ -19,8 +19,15 @@ public class CFGVisitor implements GJVisitor<List<CFGNode>,List<CFGNode>> {
    // Auto class visitors--probably don't need to be overridden.
    //
    private int lineNumber;
+   boolean printFinalAnswer;
    public CFGVisitor() {
       lineNumber = 0;
+      printFinalAnswer = false;
+   }
+
+   public CFGVisitor(boolean printFinalAnswer) {
+      lineNumber = 0;
+      this.printFinalAnswer = printFinalAnswer;
    }
 
    public List<CFGNode> visit(NodeList n, List<CFGNode> predNodes) {
@@ -793,6 +800,25 @@ public class CFGVisitor implements GJVisitor<List<CFGNode>,List<CFGNode>> {
       lineNumber++;
 	   _ret.add(cfgNode);
 	   addEdges(predNodes, cfgNode);
+
+      // Printing the final answer
+      if (printFinalAnswer) {
+         // inSet and outSet will be same, use any
+         Set<String> liveVariables = Metadata.liveAnalysis.get(cfgNode.getStmtWithLine()).inSet;
+
+         String ans = "";
+         if (liveVariables.size() != 0) {
+            Iterator<String> it = liveVariables.iterator();
+
+            ans += it.next();
+            while(it.hasNext()) {
+               ans += "," + it.next();
+            }
+         }
+
+         System.out.println(ans);
+      }
+
 	   return _ret;
    }
    

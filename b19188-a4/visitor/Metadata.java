@@ -12,11 +12,11 @@ public class Metadata {
     public static Map<String, StatementData> statementsData;
 
     // Method wise, final idfa data
-    public static Map<CFGNode, Map<String, StatementData>> liveAnalysis;
+    public static Map<String, StatementData> liveAnalysis;
 
     public Metadata() {
         statementsData = new TreeMap<String, StatementData>();
-        liveAnalysis = new HashMap<CFGNode, Map<String, StatementData>>();
+        liveAnalysis = new TreeMap<String, StatementData>();
     }
 
     public static void addStatementData(

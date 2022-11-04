@@ -205,42 +205,40 @@ public class LiveVariableAnalyser implements GJNoArguVisitor<String> {
     */
    public String visit(MethodDeclaration n) {
       CFGNode startNode = CommonUtils.getMethodCFG(n);
-      DotPrintVisitor vObj = new DotPrintVisitor();
 
       List<CFGNode> traversedNodes = new ArrayList<CFGNode>();
-      traverseAndPrintCFG(startNode, vObj, traversedNodes);
+      traverseAndPrintCFG(startNode, traversedNodes);
 
       // Fill with default data
-      Metadata.liveAnalysis.put(startNode, new TreeMap<String, StatementData>());
       for (CFGNode cfgNode : traversedNodes) {
          if (cfgNode.getNode() != null) {
             String stmtLine = cfgNode.getStmtWithLine();
             StatementData statementData = new StatementData();
-            Metadata.liveAnalysis.get(startNode).put(stmtLine, statementData);
+            Metadata.liveAnalysis.put(stmtLine, statementData);
          }
       }
 
       for (CFGNode cfgNode : traversedNodes) {
          if (cfgNode.getType() == NODETYPE.ENDNODE) {
-            doLiveVariableAnalysisMethod(startNode, cfgNode, vObj);
+            doLiveVariableAnalysisMethod(startNode, cfgNode);
          }
       }
 
       return null;
    }
 
-   private void doLiveVariableAnalysisMethod(CFGNode startNode, CFGNode endingNode, DotPrintVisitor vObj) {
+   private void doLiveVariableAnalysisMethod(CFGNode startNode, CFGNode endingNode) {
       boolean changed = true;
       for (int iter = 0; changed; iter++) {
-         changed = analyseMethod(startNode, endingNode, vObj, iter);
+         changed = analyseMethod(startNode, endingNode, iter);
          // System.out.println(Metadata.liveAnalysis);
       }
 
-      System.out.println("IDFA for live variable analysis for method done: " + startNode);
+      // System.out.println("IDFA for live variable analysis for method done: " + startNode);
       // Metadata.printData();
    }
 
-   private boolean analyseMethod(CFGNode startNode, CFGNode endingNode, DotPrintVisitor vObj, int iter) {
+   private boolean analyseMethod(CFGNode startNode, CFGNode endingNode, int iter) {
       // we do live variable analsysi now
       // System.out.println("Analysing method: " + startNode + " iter: " + iter);
 
@@ -270,8 +268,8 @@ public class LiveVariableAnalyser implements GJNoArguVisitor<String> {
 
          List<CFGNode> succs = currentNode.getSuccessorNodes();
 
-         Set<String> currentInSet = Metadata.liveAnalysis.get(startNode).get(stmtLine).inSet;
-         changed = changed | union(startNode, currentInSet, succs, vObj); // 1. Union operation
+         Set<String> currentInSet = Metadata.liveAnalysis.get(stmtLine).inSet;
+         changed = changed | union(startNode, currentInSet, succs); // 1. Union operation
 
          // System.out.println("CURRENT INSET: " + currentInSet);
 
@@ -292,7 +290,7 @@ public class LiveVariableAnalyser implements GJNoArguVisitor<String> {
 
          // System.out.println("NEW SET: " + newSet);
 
-         Metadata.liveAnalysis.get(startNode).get(stmtLine).outSet = newSet;
+         Metadata.liveAnalysis.get(stmtLine).outSet = newSet;
          // System.out.println("HAS set changed: " + changed);
 
          List<CFGNode> preds = currentNode.getPredecessorNodes();
@@ -315,7 +313,7 @@ public class LiveVariableAnalyser implements GJNoArguVisitor<String> {
       return globalChanged; // true if changed
    }
 
-   private boolean union(CFGNode startNode, Set<String> original, List<CFGNode> cfgNodes, DotPrintVisitor vObj) {
+   private boolean union(CFGNode startNode, Set<String> original, List<CFGNode> cfgNodes) {
       // adds to the original from cfgNodes, and indicates if changed
       // Create union operation, adding out of cfgNodes to original
       boolean changed = false;
@@ -327,7 +325,7 @@ public class LiveVariableAnalyser implements GJNoArguVisitor<String> {
          String stmtLine = cfgNode.getStmtWithLine();
 
          // Get the outSet of this stmtLine
-         Set<String> outSet = Metadata.liveAnalysis.get(startNode).get(stmtLine).outSet;
+         Set<String> outSet = Metadata.liveAnalysis.get(stmtLine).outSet;
          for (String var : outSet) {
             if (!original.contains(var)) {
                changed = true;
@@ -354,7 +352,7 @@ public class LiveVariableAnalyser implements GJNoArguVisitor<String> {
    }
 
    /** Depth first traversal and printing */
-   private void traverseAndPrintCFG(CFGNode startNode, DotPrintVisitor vObj, List<CFGNode> traversedNodes) {
+   private void traverseAndPrintCFG(CFGNode startNode, List<CFGNode> traversedNodes) {
       if (traversedNodes.isEmpty() || !traversedNodes.contains(startNode)) {
          traversedNodes.add(startNode);
          if (null != startNode && startNode.getNode() != null) {
@@ -363,11 +361,11 @@ public class LiveVariableAnalyser implements GJNoArguVisitor<String> {
                                                                  // ds.
             // System.out.print("Current Node: " + "Start Node");
          }
-         printSuccessors(startNode, vObj, traversedNodes);
+         printSuccessors(startNode, traversedNodes);
       }
    }
 
-   private void printSuccessors(CFGNode startNode, DotPrintVisitor vObj, List<CFGNode> traversedNodes) {
+   private void printSuccessors(CFGNode startNode, List<CFGNode> traversedNodes) {
       if (CommonUtils.isNotNull(startNode.getSuccessorNodes())) {
          List<CFGNode> successors = startNode.getSuccessorNodes();
          for (CFGNode node : successors) {
@@ -379,7 +377,7 @@ public class LiveVariableAnalyser implements GJNoArguVisitor<String> {
          }
          // System.out.println();
          for (CFGNode node : successors) {
-            traverseAndPrintCFG(node, vObj, traversedNodes);
+            traverseAndPrintCFG(node, traversedNodes);
          }
       }
 
