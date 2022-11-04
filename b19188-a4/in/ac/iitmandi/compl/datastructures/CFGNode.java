@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import syntaxtree.Node;
+import visitor.DotPrintVisitor;
 
 /**
  * @author arjun
@@ -14,35 +15,54 @@ import syntaxtree.Node;
  */
 public class CFGNode {
 
-	
 	private Node node;
 	private NODETYPE type;
 	private List<CFGNode> predecessorNodes;
 	private List<CFGNode> successorNodes;
-	
+	private int LineNumber;
+	private String stmt;
 	
 	/**
 	 * 
 	 */
-	public CFGNode(NODETYPE type) {
+	public CFGNode(NODETYPE type, int LineNumber) {
 		this.type=type;
+		this.LineNumber = LineNumber;
+		stmt = "";
 	}
 
 	/**
 	 * @param statement constructor
 	 */
-	public CFGNode(Node node) {
+	public CFGNode(Node node, int LineNumber) {
 		this.node = node;
 		this.type = NODETYPE.INTERMEDIATENODE;
+		this.LineNumber = LineNumber;
+		stmt = node.accept(new DotPrintVisitor()).toString();
+
+		// System.out.println("PRIYAM add edge stmt" + stmt);
 	}
 	
 	/**
 	 * @param node
 	 * @param type
 	 */
-	public CFGNode(Node node, NODETYPE type) {
+	public CFGNode(Node node, NODETYPE type, int LineNumber) {
 		this.node = node;
 		this.type = type;
+		this.LineNumber = LineNumber;
+		stmt = node.accept(new DotPrintVisitor()).toString();
+	}
+
+	/**
+	 * @return the stmt
+	 */
+	public String getStmt() {
+		return stmt;
+	}
+
+	public String getStmtWithLine() {
+		return LineNumber + ": " + stmt;
 	}
 
 	/**

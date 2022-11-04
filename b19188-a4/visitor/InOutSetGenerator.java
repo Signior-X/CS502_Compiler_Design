@@ -558,6 +558,11 @@ public class InOutSetGenerator implements GJNoArguVisitor<String> {
       n.f0.accept(this);
       n.f1.accept(this);
       n.f2.accept(this);
+
+      DotPrintVisitor dotPrintVisitor = new DotPrintVisitor();
+      String stmt = (n.accept(dotPrintVisitor)).toString();
+      updateStatementData(stmt);
+
       return _ret;
    }
 

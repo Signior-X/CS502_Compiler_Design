@@ -18,6 +18,11 @@ public class CFGVisitor implements GJVisitor<List<CFGNode>,List<CFGNode>> {
    //
    // Auto class visitors--probably don't need to be overridden.
    //
+   private int lineNumber;
+   public CFGVisitor() {
+      lineNumber = 0;
+   }
+
    public List<CFGNode> visit(NodeList n, List<CFGNode> predNodes) {
       List<CFGNode> _ret=null;
       int _count=0;
@@ -205,15 +210,18 @@ public class CFGVisitor implements GJVisitor<List<CFGNode>,List<CFGNode>> {
       List<CFGNode> _ret=null;
       if(n.f8.present()) {
     	  Vector<Node> stmtNodes = n.f8.nodes;
-    	  CFGNode startNode = new CFGNode(NODETYPE.STARTNODE);
+    	  CFGNode startNode = new CFGNode(NODETYPE.STARTNODE, lineNumber);
+        lineNumber++;
     	  List<CFGNode> predNode = new ArrayList<>();
 		  predNode.add(startNode);
     	  for(Node stmtNode : stmtNodes) {
     		  predNode=stmtNode.accept(this,predNode);
     	  }
-    	  CFGNode retNode = new CFGNode(n.f10,NODETYPE.RETURNNODE);
+    	  CFGNode retNode = new CFGNode(n.f10,NODETYPE.RETURNNODE, lineNumber);
+        lineNumber++;
     	  addEdges(predNode, retNode);
-    	  CFGNode endNode = new CFGNode(NODETYPE.ENDNODE);
+    	  CFGNode endNode = new CFGNode(NODETYPE.ENDNODE, lineNumber);
+        lineNumber++;
     	  List<CFGNode> _retNodes= new ArrayList<>();
     	  _retNodes.add(retNode);
     	  addEdges(_retNodes, endNode);
@@ -450,7 +458,7 @@ public class CFGVisitor implements GJVisitor<List<CFGNode>,List<CFGNode>> {
     * f2 -> <SCOMMENT2>
     */
    public List<CFGNode> visit(LivenessQueryStatement n, List<CFGNode> predNodes) {
-      return predNodes;
+      return constructCFGNodeLiveStmt(n, predNodes);
    }
 
    /**
@@ -767,7 +775,22 @@ public class CFGVisitor implements GJVisitor<List<CFGNode>,List<CFGNode>> {
     */
    private List<CFGNode> constructCFGNode(Node n, List<CFGNode> predNodes) {
 	   List<CFGNode> _ret=new ArrayList<CFGNode>();
-	   CFGNode cfgNode = new CFGNode(n);
+	   CFGNode cfgNode = new CFGNode(n, lineNumber);
+      lineNumber++;
+	   _ret.add(cfgNode);
+	   addEdges(predNodes, cfgNode);
+	   return _ret;
+   }
+
+   /**
+    * @param n
+    * @param predNodes
+    * @return
+    */
+    private List<CFGNode> constructCFGNodeLiveStmt(Node n, List<CFGNode> predNodes) {
+	   List<CFGNode> _ret=new ArrayList<CFGNode>();
+	   CFGNode cfgNode = new CFGNode(n, NODETYPE.PRINTLIVENODE, lineNumber);
+      lineNumber++;
 	   _ret.add(cfgNode);
 	   addEdges(predNodes, cfgNode);
 	   return _ret;

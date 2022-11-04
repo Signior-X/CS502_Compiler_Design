@@ -454,7 +454,7 @@ public class DotPrintVisitor implements GJNoArguVisitor<StringBuffer> {
     * f2 -> <SCOMMENT2>
     */
    public StringBuffer visit(LivenessQueryStatement n) {
-      return new StringBuffer("");
+      return new StringBuffer("PRINTLIVE");
    }
 
    /**

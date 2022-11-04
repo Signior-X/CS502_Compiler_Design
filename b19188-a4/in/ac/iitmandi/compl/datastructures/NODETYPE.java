@@ -23,7 +23,9 @@ public enum NODETYPE {
 
 	RETURNNODE {
 			
-	}
+	},
 
-	
+	PRINTLIVENODE {
+			
+	}
 }

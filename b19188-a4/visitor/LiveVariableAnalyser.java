@@ -214,9 +214,9 @@ public class LiveVariableAnalyser implements GJNoArguVisitor<String> {
       Metadata.liveAnalysis.put(startNode, new TreeMap<String, StatementData>());
       for (CFGNode cfgNode : traversedNodes) {
          if (cfgNode.getNode() != null) {
-            String stmt = cfgNode.getNode().accept(vObj).toString();
+            String stmtLine = cfgNode.getStmtWithLine();
             StatementData statementData = new StatementData();
-            Metadata.liveAnalysis.get(startNode).put(stmt, statementData);
+            Metadata.liveAnalysis.get(startNode).put(stmtLine, statementData);
          }
       }
 
@@ -264,12 +264,13 @@ public class LiveVariableAnalyser implements GJNoArguVisitor<String> {
             continue;
          }
 
-         String stmt = currentNode.getNode().accept(vObj).toString();
+         String stmt = currentNode.getStmt();
+         String stmtLine = currentNode.getStmtWithLine();
          boolean changed = false;
 
          List<CFGNode> succs = currentNode.getSuccessorNodes();
 
-         Set<String> currentInSet = Metadata.liveAnalysis.get(startNode).get(stmt).inSet;
+         Set<String> currentInSet = Metadata.liveAnalysis.get(startNode).get(stmtLine).inSet;
          changed = changed | union(startNode, currentInSet, succs, vObj); // 1. Union operation
 
          // System.out.println("CURRENT INSET: " + currentInSet);
@@ -291,7 +292,7 @@ public class LiveVariableAnalyser implements GJNoArguVisitor<String> {
 
          // System.out.println("NEW SET: " + newSet);
 
-         Metadata.liveAnalysis.get(startNode).get(stmt).outSet = newSet;
+         Metadata.liveAnalysis.get(startNode).get(stmtLine).outSet = newSet;
          // System.out.println("HAS set changed: " + changed);
 
          List<CFGNode> preds = currentNode.getPredecessorNodes();
@@ -323,10 +324,10 @@ public class LiveVariableAnalyser implements GJNoArguVisitor<String> {
             continue;
          }
 
-         String stmt = cfgNode.getNode().accept(vObj).toString();
+         String stmtLine = cfgNode.getStmtWithLine();
 
-         // Get the outSet of this stmt
-         Set<String> outSet = Metadata.liveAnalysis.get(startNode).get(stmt).outSet;
+         // Get the outSet of this stmtLine
+         Set<String> outSet = Metadata.liveAnalysis.get(startNode).get(stmtLine).outSet;
          for (String var : outSet) {
             if (!original.contains(var)) {
                changed = true;
@@ -357,10 +358,10 @@ public class LiveVariableAnalyser implements GJNoArguVisitor<String> {
       if (traversedNodes.isEmpty() || !traversedNodes.contains(startNode)) {
          traversedNodes.add(startNode);
          if (null != startNode && startNode.getNode() != null) {
-            // System.out.print("Current Node: "+startNode.getNode().accept(vObj));
+            // System.out.print("Current Node: " + startNode.getStmtWithLine());
          } else if (startNode.getType() == NODETYPE.STARTNODE) { // start and end nodes do not have node objects in CFG
                                                                  // ds.
-            // System.out.print("Current Node: "+"Start Node");
+            // System.out.print("Current Node: " + "Start Node");
          }
          printSuccessors(startNode, vObj, traversedNodes);
       }
@@ -371,9 +372,9 @@ public class LiveVariableAnalyser implements GJNoArguVisitor<String> {
          List<CFGNode> successors = startNode.getSuccessorNodes();
          for (CFGNode node : successors) {
             if (node.getType() != NODETYPE.ENDNODE) { // start and end nodes do not have node objects in CFG ds.
-               // System.out.print(" Successor Node: "+node.getNode().accept(vObj));
+               // System.out.print(" Successor Node: " + node.getStmtWithLine());
             } else {
-               // System.out.print(" Successor Node: "+"End Node");
+               // System.out.print(" Successor Node: " + "End Node");
             }
          }
          // System.out.println();

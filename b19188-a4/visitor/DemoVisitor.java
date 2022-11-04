@@ -215,9 +215,9 @@ public class DemoVisitor implements GJNoArguVisitor<String> {
 	   if(traversedNodes.isEmpty() || !traversedNodes.contains(startNode)) {
 		   traversedNodes.add(startNode);
 		   if(null!=startNode && startNode.getNode()!=null) {
-			   System.out.print("Current Node: "+startNode.getNode().accept(vObj));
+			   // System.out.print("Current Node: "+startNode.getNode().accept(vObj));
 		   }else if(startNode.getType()==NODETYPE.STARTNODE) { // start and end nodes do not have node objects in CFG ds. 
-			   System.out.print("Current Node: "+"Start Node");
+			   // System.out.print("Current Node: "+"Start Node");
 		   }
 		   printSuccessors(startNode, vObj,traversedNodes);
 	   }
@@ -233,12 +233,12 @@ public class DemoVisitor implements GJNoArguVisitor<String> {
 		   List<CFGNode> successors = startNode.getSuccessorNodes();
 		   for(CFGNode node:successors) {
 			   if(node.getType()!=NODETYPE.ENDNODE) { // start and end nodes do not have node objects in CFG ds. 
-				   System.out.print(" Successor Node: "+node.getNode().accept(vObj));
+				   // System.out.print(" Successor Node: "+node.getNode().accept(vObj));
 			   }else {
-				   System.out.print(" Successor Node: "+"End Node");
+				   // System.out.print(" Successor Node: "+"End Node");
 			   }
 		   }
-		   System.out.println();
+		   // System.out.println();
 		   for(CFGNode node:successors) {
 			   traverseAndPrintCFG(node,vObj,traversedNodes);
 		   }
