@@ -403,7 +403,7 @@ public class InOutSetGenerator implements GJNoArguVisitor<String> {
       // TODO - chekc if correct
       outSet.add(n.f0.accept(this));
       n.f1.accept(this);
-      n.f2.accept(this);
+      outSet.add(n.f2.accept(this));
       n.f3.accept(this);
       n.f4.accept(this);
       outSet.add(n.f5.accept(this));
@@ -553,7 +553,7 @@ public class InOutSetGenerator implements GJNoArguVisitor<String> {
     * f2 -> <SCOMMENT2>
     */
    public String visit(LivenessQueryStatement n) {
-      // TODO - PRIYAM
+      // PRIYAM
       String _ret=null;
       n.f0.accept(this);
       n.f1.accept(this);
@@ -700,7 +700,6 @@ public class InOutSetGenerator implements GJNoArguVisitor<String> {
       String _ret=null;
       outSet.add(n.f0.accept(this));
       n.f1.accept(this);
-      // TODO - check if identifier can be a literal also??
       outSet.add(n.f2.accept(this));
       n.f3.accept(this);
       return _ret;
@@ -775,6 +774,7 @@ public class InOutSetGenerator implements GJNoArguVisitor<String> {
       String _ret=null;
       String res = n.f0.accept(this);
 
+      // identifier check
       if (res != null) {
          outSet.add(res);
       }
@@ -831,6 +831,7 @@ public class InOutSetGenerator implements GJNoArguVisitor<String> {
    public String visit(ThisExpression n) {
       String _ret=null;
       n.f0.accept(this);
+      outSet.add("this");
       return _ret;
    }
 
@@ -842,12 +843,11 @@ public class InOutSetGenerator implements GJNoArguVisitor<String> {
     * f4 -> "]"
     */
    public String visit(ArrayAllocationExpression n) {
-      // TODO - Add this also
       String _ret=null;
       n.f0.accept(this);
       n.f1.accept(this);
       n.f2.accept(this);
-      n.f3.accept(this);
+      outSet.add(n.f3.accept(this));
       n.f4.accept(this);
       return _ret;
    }

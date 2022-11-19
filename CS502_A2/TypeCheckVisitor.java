@@ -116,7 +116,7 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
          }
       }
 
-      if (operand == "&&" || operand == "||" || operand == "") {
+      if (operand == "&&" || operand == "||") {
          if (type1 == "boolean" && type2 == "boolean") {
             return "boolean";
          }
@@ -131,6 +131,13 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
 
       if (operand == "!=") {
          if (type1 == type2) {
+            return "boolean";
+         }
+         else if (type1 == "int" && type2 == "float") {
+            return "boolean";
+         } else if (type1 == "float" && type2 == "int") {
+            return "boolean";
+         } else if (isValidTypeCast(type1, type2) || isValidTypeCast(type2, type1)) {
             return "boolean";
          }
       }
@@ -191,6 +198,9 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
          // System.out.println("Function Params : " + String.valueOf(requiredParams));
          boolean validFunctionCall = true;
 
+         // System.out.println(requiredParams);
+         // System.out.println(params);
+
          if (requiredParams.size() == params.size()) {
             int n = params.size();
 
@@ -198,8 +208,10 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
                if (isValidTypeCast(params.get(i), requiredParams.get(i))) {
                   continue;
                } else {
+                  // System.out.println("YES");
                   validFunctionCall = false;
-                  break;
+                  FunctionErrors++; // Each argument matching failure will be a separate Function error
+                  // break;
                }
             }
          } else {
@@ -212,8 +224,13 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
       }
 
       // System.out.println("ERROR : FUNCTION CALL: " + base + " : " + functionName + " : " + params);
-      FunctionErrors++;
-      return null;
+      // FunctionErrors++;
+      // return null;
+      try {
+         return MetaData.functionMetadata.get(realBase).get(functionName).returnType;
+      } catch(Exception ex) {
+         return null;
+      }
    }
 
    /**
@@ -525,6 +542,7 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
       String _ret = null;
       n.f0.accept(this, argu);
       n.f1.accept(this, argu);
+
       String condType = n.f2.accept(this, argu);
       // System.out.println("CONDTYPE : " + condType);
       if (condType != "boolean") {
@@ -550,6 +568,7 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
       n.f0.accept(this, argu);
       n.f1.accept(this, argu);
       String condType = n.f2.accept(this, argu);
+
       // System.out.println("CONDTYPE : " + condType);
       if (condType != "boolean") {
          ConditionErrors++;
@@ -574,6 +593,7 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
       n.f0.accept(this, argu);
       n.f1.accept(this, argu);
       String condType = n.f2.accept(this, argu);
+
       // System.out.println("CONDTYPE : " + condType);
       if (condType != "boolean") {
          ConditionErrors++;
@@ -722,7 +742,6 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f5 -> ")"
     */
    public String visit(MessageSend n, Map<String, String> argu) {
-      String _ret = null;
       // PRIYAM - Function calls
       // First we will check if a valid function call and that function exists or not
 
@@ -839,10 +858,8 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
     * f1 -> Expression()
     */
    public String visit(NotExpression n, Map<String, String> argu) {
-      String _ret = null;
       n.f0.accept(this, argu);
-      n.f1.accept(this, argu);
-      return _ret;
+      return n.f1.accept(this, argu);
    }
 
    /**
@@ -854,6 +871,7 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
       n.f0.accept(this, argu);
       String expression = n.f1.accept(this, argu);
       n.f2.accept(this, argu);
+
       // PRIYAM -> simply ignore the bracket
       return expression;
    }
@@ -876,7 +894,6 @@ public class TypeCheckVisitor extends GJDepthFirst<String, Map<String, String>> 
    public String visit(IdentifierRest n, Map<String, String> argu) {
       String _ret = null;
       n.f0.accept(this, argu);
-      n.f1.accept(this, argu);
-      return _ret;
+      return n.f1.accept(this, argu);
    }
 }

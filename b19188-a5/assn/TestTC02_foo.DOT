@@ -1,0 +1,17 @@
+digraph {
+rankdir=TB
+bb1 [style="rounded,filled", shape="box", fillcolor="orange", fontname="monospace", xlabel="End", label="int a;
+int b;
+int c;
+int d;
+int e;
+int t;
+a = 5;
+b = 6;
+c = a + b;
+d = c + a;
+e = a - c;
+t = d - e;
+return t;
+"];
+}

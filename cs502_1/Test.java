@@ -16,6 +16,7 @@ class A {
         x = 10;
         y = 100.25;
         b = true;
+        x = x + x;
         while (b) {
             y = y + x; //binop1
             if (y != 200) { //binop2

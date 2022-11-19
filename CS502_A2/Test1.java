@@ -8,7 +8,7 @@ class A {
     public int bar(boolean b) {
         int a;
         float f;
-        a = 10;
+        a = 0;
         f = 10;
         // NOTE: Assignment of int to float is allowed, but not vice versa
         f = a;
@@ -43,6 +43,8 @@ class A {
         o2 = new B();
         o3 = new C();
         // c = (o1 != o2);
+        // if (o1 <= o2) { }
+
         c = o2.priyam(1, 2, 3);
         a = ((10 + (10.1 + t)) + 10); // 3 Binop errors, 1 Assignment error
         p = 20;
