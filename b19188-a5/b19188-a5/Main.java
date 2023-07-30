@@ -25,12 +25,11 @@ public class Main {
          // root.accept(new ResultPrinter(resultMap));
          root.accept(new GraphVisitor(resultMap));
 
-         System.out.println(GraphVisitor.varDeclarations);
-         System.out.println(GraphVisitor.methodGraphs);
+         // System.out.println(GraphVisitor.varDeclarations);
+         // System.out.println(GraphVisitor.methodGraphs);
 
          // Now we will do the algorithm for
-         // TODO: Considering value 2 right now
-         int K = 2;
+         int K = GraphVisitor.RegisterLimit;
          for (String methodKey : GraphVisitor.methodGraphs.keySet()) {
             // First get the graph
             // By doing a deep copy
@@ -76,7 +75,7 @@ public class Main {
                }
             }
 
-            System.out.println("stack for " + methodKey + " is: " + stack);
+            // System.out.println("stack for " + methodKey + " is: " + stack);
             while(stack.size() > 0) {
                String node = stack.pop();
 
@@ -93,8 +92,12 @@ public class Main {
             }
          }
 
-         System.out.println(GraphVisitor.methodReplacements);
-         System.out.println(GraphVisitor.methodGraphs);
+         // System.out.println(GraphVisitor.methodReplacements);
+         // System.out.println(GraphVisitor.methodGraphs);
+
+         // STEP 3: We will generate the code
+         root.accept(new CodeGenerator(resultMap));
+         System.out.println(CodeGenerator.finalCode);
       } catch (ParseException e) {
          System.out.println(e.toString());
       }

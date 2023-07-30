@@ -10,62 +10,131 @@ import java.util.*;
 
 /**
  * Provides default methods which visit each node in the tree in depth-first
- * order.  Your visitors may extend this class.
+ * order. Your visitors may extend this class.
  */
-public class GraphVisitor implements GJNoArguVisitor<String> {
+public class CodeGenerator implements GJNoArguVisitor<String> {
    HashMap<Node, Set<String>> resultMap;
 
-   public static int RegisterLimit;
-
-   // methodName (class + method) -> variable -> type
-   public static HashMap<String, HashMap<String, String>> varDeclarations;
-
-   // method -> Grapp (node -> PointingTo)
-   public static HashMap<String, HashMap<String, HashSet<String>>> methodGraphs;
-
-   // method -> var -> replacement
-   // register__0,1,2... and spill__0,1,2
-   public static HashMap<String, HashMap<String, String>> methodReplacements;
+   public static String finalCode = "";
 
    private String currentClass = "";
    private String currentMethod = "";
    private boolean insideMethod = false;
 
-   public GraphVisitor(HashMap<Node, Set<String>> r) {
-      RegisterLimit = 0;
-      varDeclarations = new HashMap<String, HashMap<String, String>>();
-      methodGraphs = new HashMap<String, HashMap<String, HashSet<String>>>();
-      methodReplacements = new HashMap<String, HashMap<String, String>>();
-      resultMap = r;
-   }
+   private String methodTemps = "";
+   private String methodBody = "";
+   private String methodParams = "";
 
-   public static String getMethodKey(String className, String methodName) {
-      return className + "__PRIYAM__" + methodName;
+   public CodeGenerator(HashMap<Node, Set<String>> r) {
+      resultMap = r;
+      finalCode = "";
    }
 
    private void initMethod() {
       String methodKey = GraphVisitor.getMethodKey(currentClass, currentMethod);
-      varDeclarations.put(methodKey, new HashMap<String, String>());
-      methodGraphs.put(methodKey, new HashMap<String, HashSet<String>>());
-      methodReplacements.put(methodKey, new HashMap<String, String>());
-   }
+      for (int i = 0; i < GraphVisitor.RegisterLimit; i++) {
+         String st = "Object " + "register__" + i + ";";
+         addToMethodCode(st, 4);
+      }
 
-   private void makeGraph(Set<String> lives) {
-      for  (String a : lives) {
-         for (String b : lives) {
-            if (a != b)
-               methodGraphs.get(getMethodKey(currentClass, currentMethod)).get(a).add(b);
+      int spilled = 0;
+      HashMap<String, String> replacements = GraphVisitor.methodReplacements.get(methodKey);
+      for (String key : replacements.keySet()) {
+         if (isSpilled(replacements.get(key)) != -1) {
+            spilled++;
          }
       }
+      addToMethodCode("alloca(" + spilled + ");", 4);
+      addToMethodCode("", 4);
+   }
+
+   private void addToFinalCode(String line, int sp) {
+      while (sp-- > 0) {
+         finalCode += " ";
+      }
+
+      finalCode += line + "\n";
+   }
+
+   private void addToMethodCode(String line, int sp) {
+      while (sp-- > 0) {
+         methodBody += " ";
+      }
+
+      methodBody += line + "\n";
+   }
+
+   private int isSpilled(String res) {
+      // Ensue that you give the result value
+      if (res.substring(0, 5).equals("spill")) {
+         // find the spill value for this
+         return Integer.parseInt(res.substring(7));
+      }
+      return -1;
+   }
+
+   private int isSpilled(String var, boolean resultReady) {
+      if (!resultReady) {
+         String methodKey = GraphVisitor.getMethodKey(currentClass, currentMethod);
+         String res = GraphVisitor.methodReplacements.get(methodKey).get(var);
+         return isSpilled(res);
+      } else {
+         return isSpilled(var);
+      }
+   }
+
+   private String getVariableForRHS(String iden) {
+      if (!insideMethod)
+         return iden;
+      else {
+         String methodKey = GraphVisitor.getMethodKey(currentClass, currentMethod);
+         if (GraphVisitor.methodReplacements.get(methodKey).containsKey(iden)) {
+            String res = GraphVisitor.methodReplacements.get(methodKey).get(iden);
+            String type = GraphVisitor.varDeclarations.get(methodKey).get(iden);
+
+            // First check if the variable is a load statement or not
+            // If yes, get from alloc, else get from register
+
+            if (isSpilled(res) != -1) {
+               return "(" + "(" + type + ") " + "load(" + isSpilled(res) + ")" + ")";
+            } else {
+               return "(" + "(" + type + ") " + res + ")";
+            }
+         }
+         return iden;
+      }
+   }
+
+   private String getVariableForLHS(String iden) {
+      if (!insideMethod)
+         return iden;
+      else {
+         String methodKey = GraphVisitor.getMethodKey(currentClass, currentMethod);
+         if (GraphVisitor.methodReplacements.get(methodKey).containsKey(iden)) {
+            String res = GraphVisitor.methodReplacements.get(methodKey).get(iden);
+            return res;
+         }
+         return iden;
+      }
+   }
+
+   private void methodEnds() {
+      finalCode += methodTemps;
+      finalCode += methodBody;
+      methodTemps = "";
+      methodBody = "";
+      currentMethod = "";
+      insideMethod = false;
+      addToFinalCode("}", 2);
    }
 
    //
    // Auto class visitors--probably don't need to be overridden.
    //
    public String visit(NodeList n) {
-      String _ret=null;
-      int _count=0;
-      for ( Enumeration<Node> e = n.elements(); e.hasMoreElements(); ) {
+      String _ret = null;
+      int _count = 0;
+      for (Enumeration<Node> e = n.elements(); e.hasMoreElements();) {
          e.nextElement().accept(this);
          _count++;
       }
@@ -73,37 +142,38 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
    }
 
    public String visit(NodeListOptional n) {
-      if ( n.present() ) {
-         String _ret=null;
-         int _count=0;
-         for ( Enumeration<Node> e = n.elements(); e.hasMoreElements(); ) {
+      if (n.present()) {
+         String _ret = null;
+         int _count = 0;
+         for (Enumeration<Node> e = n.elements(); e.hasMoreElements();) {
             e.nextElement().accept(this);
             _count++;
          }
          return _ret;
-      }
-      else
+      } else
          return null;
    }
 
    public String visit(NodeOptional n) {
-      if ( n.present() )
+      if (n.present())
          return n.node.accept(this);
       else
          return null;
    }
 
    public String visit(NodeSequence n) {
-      String _ret=null;
-      int _count=0;
-      for ( Enumeration<Node> e = n.elements(); e.hasMoreElements(); ) {
+      String _ret = null;
+      int _count = 0;
+      for (Enumeration<Node> e = n.elements(); e.hasMoreElements();) {
          e.nextElement().accept(this);
          _count++;
       }
       return _ret;
    }
 
-   public String visit(NodeToken n) { return null; }
+   public String visit(NodeToken n) {
+      return null;
+   }
 
    //
    // User-generated visitor methods below
@@ -116,11 +186,14 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f3 -> <EOF>
     */
    public String visit(Goal n) {
-      String _ret=null;
+      String _ret = null;
       // if (n.f0.present()) {
-      //    System.out.println("Register Limit: " + n.f0.node);
+      // System.out.println("Register Limit: " + n.f0.node);
+      addToFinalCode(n.f0.tokenImage, 0);
       // }
-      n.f0.accept(this);
+      // n.f0.accept(this);
+
+      addToFinalCode("import static a5.Memory.*;", 0);
       n.f1.accept(this);
       n.f2.accept(this);
       return _ret;
@@ -147,7 +220,7 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f17 -> "}"
     */
    public String visit(MainClass n) {
-      String _ret=null;
+      String _ret = null;
       n.f0.accept(this);
       currentClass = n.f1.accept(this);
       n.f2.accept(this);
@@ -160,25 +233,28 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
       n.f8.accept(this);
       n.f9.accept(this);
       n.f10.accept(this);
-      n.f11.accept(this);
+      String argName = n.f11.accept(this);
       n.f12.accept(this);
       n.f13.accept(this);
       insideMethod = true;
       initMethod();
+      addToFinalCode("class " + currentClass + " {", 0);
+      addToFinalCode("public static void main(String[] " + argName + ") {", 2);
       n.f14.accept(this);
       n.f15.accept(this);
       n.f16.accept(this);
-      insideMethod = false;
+      methodEnds();
       n.f17.accept(this);
+      addToFinalCode("}", 0);
       return _ret;
    }
 
    /**
     * f0 -> ClassDeclaration()
-    *       | ClassExtendsDeclaration()
+    * | ClassExtendsDeclaration()
     */
    public String visit(TypeDeclaration n) {
-      String _ret=null;
+      String _ret = null;
       n.f0.accept(this);
       return _ret;
    }
@@ -192,13 +268,16 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f5 -> "}"
     */
    public String visit(ClassDeclaration n) {
-      String _ret=null;
+      String _ret = null;
       n.f0.accept(this);
       currentClass = n.f1.accept(this);
       n.f2.accept(this);
+      addToFinalCode("class " + currentClass + " {", 0);
       n.f3.accept(this);
       n.f4.accept(this);
       n.f5.accept(this);
+
+      addToFinalCode("}", 0);
       return _ret;
    }
 
@@ -213,15 +292,18 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f7 -> "}"
     */
    public String visit(ClassExtendsDeclaration n) {
-      String _ret=null;
+      String _ret = null;
       n.f0.accept(this);
       currentClass = n.f1.accept(this);
       n.f2.accept(this);
-      n.f3.accept(this);
+      String extendingClass = n.f3.accept(this);
       n.f4.accept(this);
+      addToFinalCode("class " + currentClass + " extends " + extendingClass + " {", 0);
       n.f5.accept(this);
       n.f6.accept(this);
       n.f7.accept(this);
+
+      addToFinalCode("}", 0);
       return _ret;
    }
 
@@ -231,17 +313,17 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f2 -> ";"
     */
    public String visit(VarDeclaration n) {
-      String _ret=null;
+      String _ret = null;
       String type = n.f0.accept(this);
       String var = n.f1.accept(this);
+      n.f2.accept(this);
 
       if (insideMethod) {
-         String methodKey = GraphVisitor.getMethodKey(currentClass, currentMethod);
-         varDeclarations.get(methodKey).put(var, type);
-         methodGraphs.get(methodKey).put(var, new HashSet<String>());
+         // local variables
+      } else {
+         // field variables
+         addToFinalCode(type + " " + var + ";", 0);
       }
-
-      n.f2.accept(this);
       return _ret;
    }
 
@@ -261,27 +343,32 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f12 -> "}"
     */
    public String visit(MethodDeclaration n) {
-      String _ret=null;
+      String _ret = null;
       n.f0.accept(this);
-      n.f1.accept(this);
+      String methodType = n.f1.accept(this);
       currentMethod = n.f2.accept(this);
       n.f3.accept(this);
+      methodParams = "";
       n.f4.accept(this);
       n.f5.accept(this);
       n.f6.accept(this);
+      if (methodParams.length() > 0) {
+         addToFinalCode("public " + methodType + " " + currentMethod + "("
+               + methodParams.substring(0, methodParams.length() - 1) + ") {", 2);
+      } else {
+         addToFinalCode("public " + methodType + " " + currentMethod + "(" + methodParams + ") {", 2);
+      }
       insideMethod = true;
       initMethod();
       n.f7.accept(this);
       n.f8.accept(this);
       n.f9.accept(this);
-      n.f10.accept(this);
+      String returnVar = n.f10.accept(this);
       n.f11.accept(this);
-      n.f12.accept(this);
 
-      // For return statements
-      if (resultMap.containsKey(n)) {
-         makeGraph(resultMap.get(n));
-      }
+      addToMethodCode("return " + getVariableForRHS(returnVar) + ";", 4);
+      n.f12.accept(this);
+      methodEnds();
 
       insideMethod = false;
       return _ret;
@@ -292,7 +379,7 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f1 -> ( FormalParameterRest() )*
     */
    public String visit(FormalParameterList n) {
-      String _ret=null;
+      String _ret = null;
       n.f0.accept(this);
       n.f1.accept(this);
       return _ret;
@@ -303,9 +390,10 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f1 -> Identifier()
     */
    public String visit(FormalParameter n) {
-      String _ret=null;
-      n.f0.accept(this);
-      n.f1.accept(this);
+      String _ret = null;
+      String type = n.f0.accept(this);
+      String var = n.f1.accept(this);
+      methodParams += type + " " + var + ",";
       return _ret;
    }
 
@@ -314,7 +402,7 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f1 -> FormalParameter()
     */
    public String visit(FormalParameterRest n) {
-      String _ret=null;
+      String _ret = null;
       n.f0.accept(this);
       n.f1.accept(this);
       return _ret;
@@ -322,13 +410,13 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
 
    /**
     * f0 -> ArrayType()
-    *       | BooleanType()
-    *       | IntegerType()
-    *       | FloatType()
-    *       | Identifier()
+    * | BooleanType()
+    * | IntegerType()
+    * | FloatType()
+    * | Identifier()
     */
    public String visit(Type n) {
-      String _ret=null;
+      String _ret = null;
       return n.f0.accept(this);
    }
 
@@ -338,7 +426,7 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f2 -> "]"
     */
    public String visit(ArrayType n) {
-      String _ret=null;
+      String _ret = null;
       n.f0.accept(this);
       n.f1.accept(this);
       n.f2.accept(this);
@@ -349,7 +437,7 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f0 -> "float"
     */
    public String visit(FloatType n) {
-      String _ret=null;
+      String _ret = null;
       n.f0.accept(this);
       return "float";
    }
@@ -358,7 +446,7 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f0 -> "boolean"
     */
    public String visit(BooleanType n) {
-      String _ret=null;
+      String _ret = null;
       n.f0.accept(this);
       return "boolean";
    }
@@ -367,23 +455,23 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f0 -> "int"
     */
    public String visit(IntegerType n) {
-      String _ret=null;
+      String _ret = null;
       n.f0.accept(this);
       return "int";
    }
 
    /**
     * f0 -> Block()
-    *       | AssignmentStatement()
-    *       | ArrayAssignmentStatement()
-    *       | FieldAssignmentStatement()
-    *       | IfStatement()
-    *       | WhileStatement()
-    *       | PrintStatement()
-    *       | LivenessQueryStatement()
+    * | AssignmentStatement()
+    * | ArrayAssignmentStatement()
+    * | FieldAssignmentStatement()
+    * | IfStatement()
+    * | WhileStatement()
+    * | PrintStatement()
+    * | LivenessQueryStatement()
     */
    public String visit(Statement n) {
-      String _ret=null;
+      String _ret = null;
       n.f0.accept(this);
       return _ret;
    }
@@ -394,7 +482,7 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f2 -> "}"
     */
    public String visit(Block n) {
-      String _ret=null;
+      String _ret = null;
       n.f0.accept(this);
       n.f1.accept(this);
       n.f2.accept(this);
@@ -408,16 +496,19 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f3 -> ";"
     */
    public String visit(AssignmentStatement n) {
-      String _ret=null;
-      n.f0.accept(this);
+      String _ret = null;
+      String iden = n.f0.accept(this);
       n.f1.accept(this);
-      n.f2.accept(this);
+      String expr = n.f2.accept(this);
+      expr = getVariableForRHS(expr);
       n.f3.accept(this);
 
-      if (resultMap.containsKey(n)) {
-         makeGraph(resultMap.get(n));
+      if (isSpilled(iden, false) != -1) {
+         addToMethodCode("store(" + isSpilled(iden, false) + ", " + expr + ");", 4);
+      } else {
+         iden = getVariableForLHS(iden);
+         addToMethodCode(iden + " = " + expr + ";", 4);
       }
-
       return _ret;
    }
 
@@ -431,19 +522,18 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f6 -> ";"
     */
    public String visit(ArrayAssignmentStatement n) {
-      String _ret=null;
-      n.f0.accept(this);
+      String _ret = null;
+      String base = n.f0.accept(this);
       n.f1.accept(this);
-      n.f2.accept(this);
+      String use = n.f2.accept(this);
+      use = getVariableForRHS(use);
       n.f3.accept(this);
       n.f4.accept(this);
-      n.f5.accept(this);
+      String rhs = n.f5.accept(this);
+      rhs = getVariableForRHS(rhs);
       n.f6.accept(this);
 
-      if (resultMap.containsKey(n)) {
-         makeGraph(resultMap.get(n));
-      }
-
+      addToMethodCode(base + "[" + use + "]" + " = " + rhs + ";", 4);
       return _ret;
    }
 
@@ -456,27 +546,25 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f5 -> ";"
     */
    public String visit(FieldAssignmentStatement n) {
-      String _ret=null;
-      n.f0.accept(this);
+      String _ret = null;
+      String base = n.f0.accept(this);
       n.f1.accept(this);
-      n.f2.accept(this);
+      String field = n.f2.accept(this);
       n.f3.accept(this);
-      n.f4.accept(this);
+      String var = n.f4.accept(this);
+      var = getVariableForRHS(var);
       n.f5.accept(this);
 
-      if (resultMap.containsKey(n)) {
-         makeGraph(resultMap.get(n));
-      }
-
+      addToMethodCode(base + "." + field + " = " + var + ";", 4);
       return _ret;
    }
 
    /**
     * f0 -> IfthenElseStatement()
-    *       | IfthenStatement()
+    * | IfthenStatement()
     */
    public String visit(IfStatement n) {
-      String _ret=null;
+      String _ret = null;
       n.f0.accept(this);
       return _ret;
    }
@@ -489,17 +577,14 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f4 -> Statement()
     */
    public String visit(IfthenStatement n) {
-      String _ret=null;
+      String _ret = null;
       n.f0.accept(this);
       n.f1.accept(this);
-      n.f2.accept(this);
+      String iden = getVariableForRHS(n.f2.accept(this));
       n.f3.accept(this);
+      addToMethodCode("if (" + iden + ") {", 4);
       n.f4.accept(this);
-
-      if (resultMap.containsKey(n)) {
-         makeGraph(resultMap.get(n));
-      }
-
+      addToMethodCode("}", 4);
       return _ret;
    }
 
@@ -513,19 +598,17 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f6 -> Statement()
     */
    public String visit(IfthenElseStatement n) {
-      String _ret=null;
+      String _ret = null;
       n.f0.accept(this);
       n.f1.accept(this);
-      n.f2.accept(this);
+      String iden = getVariableForRHS(n.f2.accept(this));
       n.f3.accept(this);
+      addToMethodCode("if (" + iden + ") {", 4);
       n.f4.accept(this);
       n.f5.accept(this);
+      addToMethodCode("} else {", 4);
       n.f6.accept(this);
-
-      if (resultMap.containsKey(n)) {
-         makeGraph(resultMap.get(n));
-      }
-
+      addToMethodCode("}", 4);
       return _ret;
    }
 
@@ -537,17 +620,15 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f4 -> Statement()
     */
    public String visit(WhileStatement n) {
-      String _ret=null;
+      String _ret = null;
       n.f0.accept(this);
       n.f1.accept(this);
-      n.f2.accept(this);
+      String iden = getVariableForRHS(n.f2.accept(this));
       n.f3.accept(this);
+
+      addToMethodCode("while(" + iden + ") {", 4);
       n.f4.accept(this);
-
-      if (resultMap.containsKey(n)) {
-         makeGraph(resultMap.get(n));
-      }
-
+      addToMethodCode("}", 4);
       return _ret;
    }
 
@@ -559,17 +640,15 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f4 -> ";"
     */
    public String visit(PrintStatement n) {
-      String _ret=null;
+      String _ret = null;
       n.f0.accept(this);
       n.f1.accept(this);
-      n.f2.accept(this);
+      String iden = n.f2.accept(this);
+      iden = getVariableForRHS(iden);
       n.f3.accept(this);
       n.f4.accept(this);
 
-      if (resultMap.containsKey(n)) {
-         makeGraph(resultMap.get(n));
-      }
-
+      addToMethodCode("System.out.println(" + iden + ");", 4);
       return _ret;
    }
 
@@ -579,37 +658,31 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f2 -> <SCOMMENT2>
     */
    public String visit(LivenessQueryStatement n) {
-      String _ret=null;
+      String _ret = null;
 
       n.f0.accept(this);
       n.f1.accept(this);
       n.f2.accept(this);
-
-      if (resultMap.containsKey(n)) {
-         makeGraph(resultMap.get(n));
-      }
 
       return _ret;
    }
 
    /**
     * f0 -> OrExpression()
-    *       | AndExpression()
-    *       | CompareExpression()
-    *       | neqExpression()
-    *       | PlusExpression()
-    *       | MinusExpression()
-    *       | TimesExpression()
-    *       | DivExpression()
-    *       | ArrayLookup()
-    *       | ArrayLength()
-    *       | MessageSend()
-    *       | PrimaryExpression()
+    * | AndExpression()
+    * | CompareExpression()
+    * | neqExpression()
+    * | PlusExpression()
+    * | MinusExpression()
+    * | TimesExpression()
+    * | DivExpression()
+    * | ArrayLookup()
+    * | ArrayLength()
+    * | MessageSend()
+    * | PrimaryExpression()
     */
    public String visit(Expression n) {
-      String _ret=null;
-      n.f0.accept(this);
-      return _ret;
+      return n.f0.accept(this);
    }
 
    /**
@@ -618,11 +691,10 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f2 -> Identifier()
     */
    public String visit(AndExpression n) {
-      String _ret=null;
-      n.f0.accept(this);
+      String iden1 = getVariableForRHS(n.f0.accept(this));
       n.f1.accept(this);
-      n.f2.accept(this);
-      return _ret;
+      String iden2 = getVariableForRHS(n.f2.accept(this));
+      return iden1 + " && " + iden2;
    }
 
    /**
@@ -631,11 +703,10 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f2 -> Identifier()
     */
    public String visit(OrExpression n) {
-      String _ret=null;
-      n.f0.accept(this);
+      String iden1 = getVariableForRHS(n.f0.accept(this));
       n.f1.accept(this);
-      n.f2.accept(this);
-      return _ret;
+      String iden2 = getVariableForRHS(n.f2.accept(this));
+      return iden1 + " || " + iden2;
    }
 
    /**
@@ -644,11 +715,10 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f2 -> Identifier()
     */
    public String visit(CompareExpression n) {
-      String _ret=null;
-      n.f0.accept(this);
+      String iden1 = getVariableForRHS(n.f0.accept(this));
       n.f1.accept(this);
-      n.f2.accept(this);
-      return _ret;
+      String iden2 = getVariableForRHS(n.f2.accept(this));
+      return iden1 + " <= " + iden2;
    }
 
    /**
@@ -657,11 +727,10 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f2 -> Identifier()
     */
    public String visit(neqExpression n) {
-      String _ret=null;
-      n.f0.accept(this);
+      String iden1 = getVariableForRHS(n.f0.accept(this));
       n.f1.accept(this);
-      n.f2.accept(this);
-      return _ret;
+      String iden2 = getVariableForRHS(n.f2.accept(this));
+      return iden1 + " != " + iden2;
    }
 
    /**
@@ -670,11 +739,10 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f2 -> Identifier()
     */
    public String visit(PlusExpression n) {
-      String _ret=null;
-      n.f0.accept(this);
+      String iden1 = getVariableForRHS(n.f0.accept(this));
       n.f1.accept(this);
-      n.f2.accept(this);
-      return _ret;
+      String iden2 = getVariableForRHS(n.f2.accept(this));
+      return iden1 + " + " + iden2;
    }
 
    /**
@@ -683,11 +751,10 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f2 -> Identifier()
     */
    public String visit(MinusExpression n) {
-      String _ret=null;
-      n.f0.accept(this);
+      String iden1 = getVariableForRHS(n.f0.accept(this));
       n.f1.accept(this);
-      n.f2.accept(this);
-      return _ret;
+      String iden2 = getVariableForRHS(n.f2.accept(this));
+      return iden1 + " - " + iden2;
    }
 
    /**
@@ -696,11 +763,10 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f2 -> Identifier()
     */
    public String visit(TimesExpression n) {
-      String _ret=null;
-      n.f0.accept(this);
+      String iden1 = getVariableForRHS(n.f0.accept(this));
       n.f1.accept(this);
-      n.f2.accept(this);
-      return _ret;
+      String iden2 = getVariableForRHS(n.f2.accept(this));
+      return iden1 + " * " + iden2;
    }
 
    /**
@@ -709,11 +775,10 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f2 -> Identifier()
     */
    public String visit(DivExpression n) {
-      String _ret=null;
-      n.f0.accept(this);
+      String iden1 = getVariableForRHS(n.f0.accept(this));
       n.f1.accept(this);
-      n.f2.accept(this);
-      return _ret;
+      String iden2 = getVariableForRHS(n.f2.accept(this));
+      return iden1 + " / " + iden2;
    }
 
    /**
@@ -723,12 +788,12 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f3 -> "]"
     */
    public String visit(ArrayLookup n) {
-      String _ret=null;
-      n.f0.accept(this);
+      String _ret = null;
+      String iden1 = getVariableForRHS(n.f0.accept(this));
       n.f1.accept(this);
-      n.f2.accept(this);
+      String iden2 = getVariableForRHS(n.f2.accept(this));
       n.f3.accept(this);
-      return _ret;
+      return iden1 + "[" + iden2 + "]";
    }
 
    /**
@@ -737,11 +802,11 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f2 -> "length"
     */
    public String visit(ArrayLength n) {
-      String _ret=null;
-      n.f0.accept(this);
+      String _ret = null;
+      String iden = getVariableForRHS(n.f0.accept(this));
       n.f1.accept(this);
       n.f2.accept(this);
-      return _ret;
+      return iden + ".length";
    }
 
    /**
@@ -753,14 +818,21 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f5 -> ")"
     */
    public String visit(MessageSend n) {
-      String _ret=null;
-      n.f0.accept(this);
+      String _ret = null;
+      String base = getVariableForRHS(n.f0.accept(this));
       n.f1.accept(this);
-      n.f2.accept(this);
+      String fun = n.f2.accept(this);
       n.f3.accept(this);
+
+      methodParams = "";
       n.f4.accept(this);
       n.f5.accept(this);
-      return _ret;
+
+      if (methodParams.length() > 0) {
+         return (base + "." + fun + "(" + methodParams.substring(0, methodParams.length() - 1) + ")");
+      } else {
+         return (base + "." + fun + "(" + methodParams + ")");
+      }
    }
 
    /**
@@ -768,8 +840,9 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f1 -> ( ArgRest() )*
     */
    public String visit(ArgList n) {
-      String _ret=null;
-      n.f0.accept(this);
+      String _ret = null;
+      String iden = getVariableForRHS(n.f0.accept(this));
+      methodParams += iden + ",";
       n.f1.accept(this);
       return _ret;
    }
@@ -779,70 +852,71 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f1 -> Identifier()
     */
    public String visit(ArgRest n) {
-      String _ret=null;
+      String _ret = null;
       n.f0.accept(this);
-      n.f1.accept(this);
+      String iden = getVariableForRHS(n.f0.accept(this));
+      methodParams += iden + ",";
       return _ret;
    }
 
    /**
     * f0 -> IntegerLiteral()
-    *       | FloatLiteral()
-    *       | TrueLiteral()
-    *       | FalseLiteral()
-    *       | Identifier()
-    *       | ThisExpression()
-    *       | ArrayAllocationExpression()
-    *       | AllocationExpression()
-    *       | NotExpression()
+    * | FloatLiteral()
+    * | TrueLiteral()
+    * | FalseLiteral()
+    * | Identifier()
+    * | ThisExpression()
+    * | ArrayAllocationExpression()
+    * | AllocationExpression()
+    * | NotExpression()
     */
    public String visit(PrimaryExpression n) {
-      String _ret=null;
-      n.f0.accept(this);
-      return _ret;
+      String _ret = null;
+      String expr = n.f0.accept(this);
+      return getVariableForRHS(expr);
    }
 
    /**
     * f0 -> <INTEGER_LITERAL>
     */
    public String visit(IntegerLiteral n) {
-      String _ret=null;
+      String _ret = null;
       n.f0.accept(this);
-      return _ret;
+      return n.f0.tokenImage;
    }
 
    /**
     * f0 -> <FLOAT_LITERAL>
     */
    public String visit(FloatLiteral n) {
-      String _ret=null;
+      String _ret = null;
       n.f0.accept(this);
-      return _ret;
+      return n.f0.tokenImage;
    }
 
    /**
     * f0 -> "true"
     */
    public String visit(TrueLiteral n) {
-      String _ret=null;
+      String _ret = null;
       n.f0.accept(this);
-      return _ret;
+      return "true";
    }
 
    /**
     * f0 -> "false"
     */
    public String visit(FalseLiteral n) {
-      String _ret=null;
+      String _ret = null;
       n.f0.accept(this);
-      return _ret;
+      return "false";
    }
 
    /**
     * f0 -> <IDENTIFIER>
     */
    public String visit(Identifier n) {
-      String _ret=null;
+      String _ret = null;
       n.f0.accept(this);
       return n.f0.tokenImage;
    }
@@ -851,9 +925,9 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f0 -> "this"
     */
    public String visit(ThisExpression n) {
-      String _ret=null;
+      String _ret = null;
       n.f0.accept(this);
-      return _ret;
+      return "this";
    }
 
    /**
@@ -864,13 +938,13 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f4 -> "]"
     */
    public String visit(ArrayAllocationExpression n) {
-      String _ret=null;
+      String _ret = null;
       n.f0.accept(this);
       n.f1.accept(this);
       n.f2.accept(this);
-      n.f3.accept(this);
+      String iden = getVariableForRHS(n.f3.accept(this));
       n.f4.accept(this);
-      return _ret;
+      return "new int [" + iden + "]";
    }
 
    /**
@@ -880,12 +954,12 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f3 -> ")"
     */
    public String visit(AllocationExpression n) {
-      String _ret=null;
+      String _ret = null;
       n.f0.accept(this);
-      n.f1.accept(this);
+      String iden = n.f1.accept(this);
       n.f2.accept(this);
       n.f3.accept(this);
-      return _ret;
+      return "new " + iden + "()";
    }
 
    /**
@@ -893,10 +967,9 @@ public class GraphVisitor implements GJNoArguVisitor<String> {
     * f1 -> Identifier()
     */
    public String visit(NotExpression n) {
-      String _ret=null;
+      String _ret = null;
       n.f0.accept(this);
-      n.f1.accept(this);
-      return _ret;
+      return (getVariableForRHS(n.f1.accept(this)));
    }
 
 }

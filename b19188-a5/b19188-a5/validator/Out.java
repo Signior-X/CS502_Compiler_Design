@@ -1,5 +1,5 @@
 /*2*/
-import static validator.a5.Memory.*;
+import static a5.Memory.*;
 class TC02 {
   public static void main(String[] args) {
     Object register__0;
